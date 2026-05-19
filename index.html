@@ -3,944 +3,496 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>🎤 Our Stage Show Setlist</title>
+<title>🎤 Stage Show Setlist</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Geist+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  :root {
-    --bg: #0d0d14;
-    --surface: #16161f;
-    --surface2: #1e1e2a;
-    --border: #2a2a3a;
-    --gold: #f0c060;
-    --gold2: #e0a030;
-    --rose: #f06080;
-    --teal: #40c8b0;
-    --text: #e8e8f0;
-    --muted: #7070a0;
-    --radius: 14px;
-    --shadow: 0 4px 24px rgba(0,0,0,0.5);
-  }
+:root{
+  --bg:#080810;--s1:#10101c;--s2:#18182a;--s3:#20203a;
+  --border:#26263a;--border2:#38385a;
+  --gold:#fbbf24;--gold-dim:rgba(251,191,36,0.13);
+  --rose:#fb7185;--teal:#2dd4bf;--teal-dim:rgba(45,212,191,0.12);
+  --text:#e2e2f0;--text2:#8080a8;--r:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);
+  display:flex;flex-direction:column;height:100dvh}
 
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+/* ── HEADER ── */
+header{flex-shrink:0;display:flex;align-items:center;gap:8px;
+  padding:9px 12px;background:var(--s1);border-bottom:1px solid var(--border);}
+.logo{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;
+  background:linear-gradient(110deg,var(--gold),var(--rose));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.badge{font-family:'Geist Mono',monospace;font-size:10px;color:var(--text2);
+  background:var(--s2);border:1px solid var(--border);border-radius:20px;padding:2px 7px;}
+.spacer{flex:1}
+.hbtn{width:30px;height:30px;border-radius:var(--r);border:1px solid var(--border);
+  background:var(--s2);color:var(--text2);font-size:13px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.hbtn:hover{border-color:var(--gold);color:var(--gold)}
+.hbtn:active{transform:scale(.9)}
+.hbtn.spin svg{animation:spin .65s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    padding-bottom: 80px;
-  }
+/* ── STATUS ── */
+#status{flex-shrink:0;font-size:11px;font-weight:600;text-align:center;
+  max-height:0;overflow:hidden;transition:max-height .2s,padding .2s;}
+#status.show{max-height:28px;padding:6px 0}
+#status.err{background:rgba(251,113,133,.1);color:var(--rose)}
+#status.ok{background:rgba(45,212,191,.08);color:var(--teal)}
+#status.inf{background:rgba(251,191,36,.07);color:var(--gold)}
 
-  /* Background decoration */
-  body::before {
-    content: '';
-    position: fixed;
-    top: -200px; right: -200px;
-    width: 500px; height: 500px;
-    background: radial-gradient(circle, rgba(240,192,96,0.07) 0%, transparent 70%);
-    pointer-events: none;
-    z-index: 0;
-  }
-  body::after {
-    content: '';
-    position: fixed;
-    bottom: -200px; left: -200px;
-    width: 500px; height: 500px;
-    background: radial-gradient(circle, rgba(240,96,128,0.06) 0%, transparent 70%);
-    pointer-events: none;
-    z-index: 0;
-  }
+/* ── COLUMN HEADS ── */
+.col-head{flex-shrink:0;display:grid;
+  grid-template-columns:30px 1fr 1fr 72px 50px;
+  padding:0 10px;height:26px;align-items:center;
+  background:var(--s1);border-bottom:1px solid var(--border);}
+.ch{font-size:9px;font-weight:700;color:var(--text2);
+  text-transform:uppercase;letter-spacing:.7px;padding:0 3px;}
 
-  header {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: rgba(13,13,20,0.92);
-    backdrop-filter: blur(16px);
-    border-bottom: 1px solid var(--border);
-    padding: 16px 20px 12px;
-  }
+/* ── SCROLL BODY ── */
+.scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
 
-  .header-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 4px;
-  }
+/* ── ROW ── */
+.row{display:grid;
+  grid-template-columns:30px 1fr 1fr 72px 50px;
+  min-height:38px;border-bottom:1px solid var(--border);
+  background:var(--s1);align-items:stretch;position:relative;
+  transition:background .12s;}
+.row:hover:not(.editing){background:var(--s2)}
+.row.editing{background:var(--s2);
+  box-shadow:inset 2px 0 0 var(--gold),inset 0 -1px 0 rgba(251,191,36,.2);}
+.row.dragging{opacity:.3}
+.row.drag-over{border-top:2px solid var(--teal)}
 
-  h1 {
-    font-family: 'Playfair Display', serif;
-    font-size: 22px;
-    font-weight: 900;
-    background: linear-gradient(135deg, var(--gold), var(--rose));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    letter-spacing: -0.5px;
-  }
+/* cells */
+.cell{display:flex;align-items:center;padding:0 4px;min-width:0;overflow:hidden;}
+.c-num{justify-content:center;
+  font-family:'Geist Mono',monospace;font-size:10px;color:var(--border2);
+  cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;flex-direction:column;gap:1px;}
+.row.editing .c-num{cursor:default;color:rgba(251,191,36,.4);font-size:11px;}
+.drag-icon{font-size:13px;line-height:1}
 
-  .song-count {
-    font-size: 12px;
-    color: var(--muted);
-    font-weight: 500;
-  }
+.c-name{font-size:13px;font-weight:500;}
+.c-name .dv{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;}
+.c-name input{width:100%;background:transparent;border:none;outline:none;
+  color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;}
 
-  .subtitle {
-    font-size: 11px;
-    color: var(--muted);
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-  }
+.c-singers{font-size:11px;flex-wrap:wrap;gap:3px;cursor:default;}
+.row.editing .c-singers{cursor:pointer;}
+.stag{background:var(--gold-dim);color:var(--gold);border-radius:4px;
+  padding:1px 5px;font-size:10px;font-weight:600;white-space:nowrap;}
+.no-val{color:var(--border2);font-size:10px;}
 
-  /* Status bar */
-  #status-bar {
-    display: none;
-    padding: 8px 20px;
-    font-size: 12px;
-    text-align: center;
-    font-weight: 500;
-  }
-  #status-bar.error { background: rgba(240,96,128,0.15); color: var(--rose); display: block; }
-  #status-bar.success { background: rgba(64,200,176,0.15); color: var(--teal); display: block; }
-  #status-bar.info { background: rgba(240,192,96,0.1); color: var(--gold); display: block; }
+.c-link{font-size:11px;}
+.c-link a{color:var(--teal);text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;}
+.c-link a:hover{text-decoration:underline}
+.c-link input{width:100%;background:transparent;border:none;outline:none;
+  color:var(--teal);font-family:'DM Sans',sans-serif;font-size:11px;}
+.c-link .no-val{color:var(--border2);font-size:10px;}
 
-  main {
-    position: relative;
-    z-index: 1;
-    padding: 16px;
-    max-width: 680px;
-    margin: 0 auto;
-  }
+.c-act{justify-content:center;gap:3px;padding:0 3px;}
+.ab{width:22px;height:22px;border-radius:5px;border:none;background:transparent;
+  color:var(--text2);font-size:13px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .12s;flex-shrink:0;}
+.ab:active{transform:scale(.88)}
+.ab.save{color:var(--teal);}
+.ab.save:hover{background:var(--teal-dim);}
+.ab.del:hover{background:rgba(251,113,133,.1);color:var(--rose)}
+.ab.edit:hover{color:var(--gold)}
+.ab.cancel:hover{color:var(--rose)}
 
-  /* Add Song FAB */
-  .fab {
-    position: fixed;
-    bottom: 24px;
-    right: 20px;
-    z-index: 200;
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--gold), var(--rose));
-    border: none;
-    color: #0d0d14;
-    font-size: 26px;
-    font-weight: 700;
-    cursor: pointer;
-    box-shadow: 0 6px 24px rgba(240,192,96,0.4);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.2s, box-shadow 0.2s;
-    line-height: 1;
-  }
-  .fab:active { transform: scale(0.93); }
+/* ── ADD ROW BUTTON ── */
+.add-btn{display:none;width:100%;padding:9px 12px;
+  background:transparent;border:none;border-bottom:1px solid var(--border);
+  color:var(--text2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;
+  cursor:pointer;text-align:left;transition:color .15s;}
+.add-btn:hover{color:var(--gold)}
+.add-btn .plus{font-size:16px;margin-right:6px;vertical-align:middle;}
 
-  /* Modal */
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.75);
-    backdrop-filter: blur(4px);
-    z-index: 300;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.25s;
-  }
-  .modal-overlay.open {
-    opacity: 1;
-    pointer-events: all;
-  }
+/* ── SINGER POPUP ── */
+#spop{position:fixed;z-index:200;display:none;
+  background:var(--s2);border:1px solid var(--border2);border-radius:10px;
+  padding:8px;box-shadow:0 8px 36px rgba(0,0,0,.75);
+  display:none;}
+.spop-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.sc{padding:7px 10px;border-radius:6px;border:1px solid var(--border);
+  background:transparent;color:var(--text2);font-family:'DM Sans',sans-serif;
+  font-size:12px;font-weight:500;cursor:pointer;text-align:center;transition:all .12s;}
+.sc.on{background:var(--gold-dim);border-color:var(--gold);color:var(--gold);font-weight:700}
+.sc:hover:not(.on){background:var(--s3)}
+.sdone{margin-top:5px;width:100%;padding:7px;border-radius:6px;border:none;
+  background:linear-gradient(90deg,var(--gold),#f59e0b);
+  color:#080810;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;}
 
-  .modal {
-    background: var(--surface);
-    border-radius: 24px 24px 0 0;
-    padding: 24px 20px 40px;
-    width: 100%;
-    max-width: 680px;
-    max-height: 90vh;
-    overflow-y: auto;
-    transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
-    border-top: 1px solid var(--border);
-  }
-  .modal-overlay.open .modal {
-    transform: translateY(0);
-  }
+/* ── EMPTY / LOADING ── */
+.empty,.loading{display:flex;flex-direction:column;align-items:center;
+  justify-content:center;height:160px;gap:6px;color:var(--text2);}
+.ei{font-size:32px;opacity:.45}
+.et{font-size:13px;font-weight:500;color:var(--text)}
+.es{font-size:11px}
+.dspin{width:5px;height:5px;border-radius:50%;background:var(--gold);
+  animation:db .7s ease-in-out infinite alternate}
+@keyframes db{from{opacity:.2;transform:scale(.5)}to{opacity:1;transform:scale(1.3)}}
 
-  .modal-handle {
-    width: 40px;
-    height: 4px;
-    background: var(--border);
-    border-radius: 2px;
-    margin: 0 auto 20px;
-  }
+/* ── FOOTER ── */
+footer{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;
+  padding:5px 12px;background:var(--s1);border-top:1px solid var(--border);
+  font-size:9px;color:var(--text2);font-family:'Geist Mono',monospace;}
 
-  .modal-title {
-    font-family: 'Playfair Display', serif;
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--gold);
-    margin-bottom: 20px;
-  }
-
-  label {
-    display: block;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    margin-bottom: 7px;
-    margin-top: 16px;
-  }
-  label:first-of-type { margin-top: 0; }
-
-  input[type="text"], input[type="url"] {
-    width: 100%;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px 14px;
-    color: var(--text);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 15px;
-    outline: none;
-    transition: border-color 0.2s;
-    -webkit-appearance: none;
-  }
-  input:focus { border-color: var(--gold); }
-
-  /* Singer chips */
-  .singer-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-  }
-
-  .singer-chip {
-    padding: 10px 8px;
-    border-radius: 10px;
-    border: 1.5px solid var(--border);
-    background: var(--surface2);
-    color: var(--muted);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    font-weight: 500;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.15s;
-    user-select: none;
-    -webkit-user-select: none;
-  }
-  .singer-chip.selected {
-    border-color: var(--gold);
-    background: rgba(240,192,96,0.12);
-    color: var(--gold);
-    font-weight: 600;
-  }
-
-  .modal-actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 24px;
-  }
-
-  .btn {
-    flex: 1;
-    padding: 14px;
-    border-radius: 12px;
-    border: none;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .btn:active { transform: scale(0.97); }
-
-  .btn-primary {
-    background: linear-gradient(135deg, var(--gold), var(--gold2));
-    color: #0d0d14;
-  }
-
-  .btn-ghost {
-    background: var(--surface2);
-    color: var(--muted);
-    border: 1px solid var(--border);
-  }
-
-  /* Song List */
-  .list-header {
-    display: grid;
-    grid-template-columns: 32px 1fr 1fr auto;
-    gap: 8px;
-    padding: 0 8px 8px;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 4px;
-  }
-
-  .col-label {
-    font-size: 10px;
-    font-weight: 600;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.7px;
-  }
-
-  .song-list {
-    list-style: none;
-  }
-
-  .song-card {
-    display: grid;
-    grid-template-columns: 32px 1fr auto;
-    gap: 8px;
-    align-items: center;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 12px 10px;
-    margin-bottom: 8px;
-    cursor: grab;
-    transition: all 0.2s;
-    position: relative;
-    touch-action: none;
-  }
-  .song-card:active { cursor: grabbing; }
-  .song-card.dragging {
-    opacity: 0.4;
-    border-color: var(--gold);
-    transform: scale(0.98);
-  }
-  .song-card.drag-over {
-    border-color: var(--teal);
-    background: rgba(64,200,176,0.05);
-  }
-
-  .song-num {
-    font-size: 18px;
-    font-weight: 900;
-    font-family: 'Playfair Display', serif;
-    color: var(--border);
-    text-align: center;
-    line-height: 1;
-  }
-  .song-card:hover .song-num { color: var(--gold); }
-
-  .song-info { min-width: 0; }
-
-  .song-name {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--text);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-bottom: 3px;
-  }
-
-  .song-singers {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin-bottom: 4px;
-  }
-
-  .singer-tag {
-    font-size: 10px;
-    font-weight: 600;
-    padding: 2px 7px;
-    border-radius: 20px;
-    background: rgba(240,192,96,0.1);
-    color: var(--gold);
-    letter-spacing: 0.3px;
-  }
-
-  .karaoke-link {
-    font-size: 11px;
-    color: var(--teal);
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 200px;
-  }
-  .karaoke-link:hover { text-decoration: underline; }
-
-  .song-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    align-items: center;
-  }
-
-  .icon-btn {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: var(--surface2);
-    color: var(--muted);
-    font-size: 14px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.15s;
-    flex-shrink: 0;
-  }
-  .icon-btn:active { transform: scale(0.9); }
-  .icon-btn.edit:hover { border-color: var(--gold); color: var(--gold); }
-  .icon-btn.delete:hover { border-color: var(--rose); color: var(--rose); }
-
-  .drag-handle {
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--muted);
-    font-size: 16px;
-    cursor: grab;
-    touch-action: none;
-  }
-
-  /* Empty state */
-  .empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    color: var(--muted);
-  }
-  .empty-icon { font-size: 52px; margin-bottom: 14px; opacity: 0.6; }
-  .empty-text { font-size: 17px; font-weight: 500; margin-bottom: 6px; color: var(--text); }
-  .empty-sub { font-size: 13px; }
-
-  /* Loading */
-  .loading {
-    text-align: center;
-    padding: 40px;
-    color: var(--muted);
-    font-size: 14px;
-  }
-  .spinner {
-    width: 28px; height: 28px;
-    border: 2px solid var(--border);
-    border-top-color: var(--gold);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    margin: 0 auto 12px;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* Setup screen */
-  #setup-screen {
-    display: none;
-    position: fixed;
-    inset: 0;
-    z-index: 500;
-    background: var(--bg);
-    padding: 40px 24px;
-    overflow-y: auto;
-  }
-  #setup-screen.visible { display: flex; flex-direction: column; align-items: center; justify-content: center; }
-
-  .setup-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 28px 24px;
-    width: 100%;
-    max-width: 440px;
-  }
-
-  .setup-title {
-    font-family: 'Playfair Display', serif;
-    font-size: 26px;
-    font-weight: 900;
-    background: linear-gradient(135deg, var(--gold), var(--rose));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 6px;
-  }
-
-  .setup-sub {
-    color: var(--muted);
-    font-size: 13px;
-    margin-bottom: 24px;
-    line-height: 1.5;
-  }
-
-  .config-notice {
-    background: rgba(240,192,96,0.08);
-    border: 1px solid rgba(240,192,96,0.2);
-    border-radius: 10px;
-    padding: 12px 14px;
-    font-size: 12px;
-    color: var(--gold);
-    margin-top: 16px;
-    line-height: 1.5;
-  }
-
-  @media (min-width: 600px) {
-    .song-card {
-      grid-template-columns: 36px 1fr 1fr auto;
-    }
-    .singer-grid {
-      grid-template-columns: repeat(6, 1fr);
-    }
-  }
+@media(max-width:420px){
+  .col-head,.row{grid-template-columns:26px 1fr 1fr 64px 46px}
+  .c-name input,.c-name .dv{font-size:12px}
+  .ch{font-size:8px}
+}
 </style>
 </head>
 <body>
 
-<!-- Config screen shown if Supabase not configured -->
-<div id="setup-screen">
-  <div class="setup-card">
-    <div class="setup-title">🎤 Stage Show</div>
-    <p class="setup-sub">Configure your Supabase connection to get started. This only needs to be done once in the code.</p>
-    <label>Supabase URL</label>
-    <input type="text" id="cfg-url" placeholder="https://xxxx.supabase.co" />
-    <label>Supabase Anon Key</label>
-    <input type="text" id="cfg-key" placeholder="eyJ..." />
-    <div class="modal-actions" style="margin-top:20px">
-      <button class="btn btn-primary" onclick="saveConfig()">Save & Connect</button>
-    </div>
-    <div class="config-notice">
-      💡 After saving, update the <code>SUPABASE_URL</code> and <code>SUPABASE_KEY</code> constants in the HTML source for automatic connection on all devices.
-    </div>
-  </div>
-</div>
-
 <header>
-  <div class="header-top">
-    <h1>🎤 Stage Show</h1>
-    <span class="song-count" id="song-count">0 songs</span>
-  </div>
-  <div class="subtitle">Cousins' Setlist Manager</div>
+  <span class="logo">🎤 Setlist</span>
+  <span class="badge" id="hcount">— songs</span>
+  <div class="spacer"></div>
+  <button class="hbtn" id="rbtn" title="Refresh" onclick="doRefresh()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+    </svg>
+  </button>
 </header>
 
-<div id="status-bar"></div>
+<div id="status"></div>
 
-<main>
-  <div id="list-container">
-    <div class="loading"><div class="spinner"></div>Connecting…</div>
+<div class="col-head">
+  <div class="ch" style="text-align:center">⠿</div>
+  <div class="ch" style="padding-left:5px">Song Name</div>
+  <div class="ch" style="padding-left:5px">Singer(s)</div>
+  <div class="ch" style="padding-left:5px">Karaoke</div>
+  <div class="ch"></div>
+</div>
+
+<div class="scroll" id="scroll">
+  <div id="body">
+    <div class="loading"><div class="dspin"></div><span style="font-size:12px">Connecting…</span></div>
   </div>
-</main>
+  <button class="add-btn" id="addbtn" onclick="addRow()">
+    <span class="plus">+</span> Add Song
+  </button>
+</div>
 
-<button class="fab" onclick="openModal()" title="Add Song">+</button>
+<footer>
+  <span>cousins' stage show</span>
+  <span id="fdb">● connecting</span>
+</footer>
 
-<!-- Add/Edit Modal -->
-<div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
-  <div class="modal" id="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="modal-title">Add New Song</div>
-
-    <label>Song Name *</label>
-    <input type="text" id="inp-name" placeholder="e.g. Tum Hi Ho" />
-
-    <label>Singer(s) *</label>
-    <div class="singer-grid" id="singer-grid">
-      <!-- chips injected by JS -->
-    </div>
-
-    <label>Karaoke / YouTube Link</label>
-    <input type="url" id="inp-link" placeholder="https://youtube.com/..." />
-
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveSong()">Save Song</button>
-    </div>
-  </div>
+<!-- Singer popup -->
+<div id="spop">
+  <div class="spop-grid" id="spop-grid"></div>
+  <button class="sdone" onclick="closePop()">Done ✓</button>
 </div>
 
 <script>
-// =============================================
-//  CONFIGURE SUPABASE HERE
-//  Replace these with your actual values
-// =============================================
+// ── CONFIG ──────────────────────────────────────
 const SUPABASE_URL = 'https://cahvshxueqvixsgtucqb.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_hAS0dxhq4DtgmU-NjSi1RA_XSHGm2CX';
-// =============================================
-
-const COUSINS = ['Ravi', 'Soujanya', 'Soumya', 'Sravan', 'Saradhi', 'Harini'];
 const TABLE = 'setlist_songs';
+const COUSINS = ['Ravi','Soujanya','Soumya','Sravan','Saradhi','Harini'];
+// ────────────────────────────────────────────────
 
-let supabase_client = null;
-let songs = [];
-let editingId = null;
-let selectedSingers = [];
+let db, songs = [], editState = {}, popTarget = null;
+let dragSrcId = null, touchSrcId = null, touchClone = null;
 
-// Drag state
-let dragSrc = null;
-let touchDragEl = null;
-let touchClone = null;
-let touchDragIndex = null;
+// ── INIT ─────────────────────────────────────────
+async function init(){
+  db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  await load();
+}
 
-// ---- INIT ----
-async function init() {
-  const url = SUPABASE_URL !== 'YOUR_SUPABASE_URL' ? SUPABASE_URL : localStorage.getItem('sb_url');
-  const key = SUPABASE_KEY !== 'YOUR_SUPABASE_ANON_KEY' ? SUPABASE_KEY : localStorage.getItem('sb_key');
+async function load(){
+  setFdb('...');
+  const {data,error} = await db.from(TABLE).select('*').order('sort_order',{ascending:true});
+  if(error){ toast('Load error: '+error.message,'err'); setFdb('err'); return; }
+  songs = data||[];
+  render();
+  setFdb('ok');
+}
 
-  if (!url || !key) {
-    document.getElementById('setup-screen').classList.add('visible');
+async function doRefresh(){
+  document.getElementById('rbtn').classList.add('spin');
+  await load();
+  toast('Refreshed ✓','ok');
+  setTimeout(()=>document.getElementById('rbtn').classList.remove('spin'),700);
+}
+
+// ── RENDER ───────────────────────────────────────
+function render(){
+  const b = document.getElementById('body');
+  const ab = document.getElementById('addbtn');
+  ab.style.display='block';
+  document.getElementById('hcount').textContent = songs.length+(songs.length===1?' song':' songs');
+
+  if(!songs.length){
+    b.innerHTML=`<div class="empty"><div class="ei">🎵</div><div class="et">No songs yet</div><div class="es">Tap "+ Add Song" to begin</div></div>`;
     return;
   }
-
-  try {
-    supabase_client = supabase.createClient(url, key);
-    await ensureTable();
-    await loadSongs();
-    buildSingerChips();
-  } catch(e) {
-    showStatus('Connection failed: ' + e.message, 'error');
-    document.getElementById('list-container').innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">Connection Failed</div><div class="empty-sub">Check your Supabase credentials</div></div>';
-  }
+  b.innerHTML='';
+  songs.forEach((s,i)=>b.appendChild(mkRow(s,i)));
+  bindDrag();
 }
 
-async function saveConfig() {
-  const url = document.getElementById('cfg-url').value.trim();
-  const key = document.getElementById('cfg-key').value.trim();
-  if (!url || !key) { alert('Both fields required'); return; }
-  localStorage.setItem('sb_url', url);
-  localStorage.setItem('sb_key', key);
-  document.getElementById('setup-screen').classList.remove('visible');
-  supabase_client = supabase.createClient(url, key);
-  await ensureTable();
-  await loadSongs();
-  buildSingerChips();
-}
+function mkRow(song, i){
+  const ed = editState[song.id];
+  const isEd = !!ed;
+  const div = document.createElement('div');
+  div.className = 'row'+(isEd?' editing':'')+(song._new?' new-row':'');
+  div.dataset.id = song.id;
+  div.dataset.idx = i;
+  if(!isEd) div.draggable=true;
 
-async function ensureTable() {
-  // Try to create table via RPC if it doesn't exist (best effort)
-  // The table should be created in Supabase dashboard with:
-  // id uuid default gen_random_uuid() primary key,
-  // name text not null,
-  // singers text[] default '{}',
-  // karaoke_link text default '',
-  // sort_order integer default 0,
-  // created_at timestamptz default now()
-  const { error } = await supabase_client.from(TABLE).select('id').limit(1);
-  if (error && error.code === '42P01') {
-    showStatus('Table not found. Please create the "setlist_songs" table in Supabase — see instructions below.', 'error');
-  }
-}
+  const singers = isEd ? ed.singers : (song.singers||[]);
+  const name    = isEd ? ed.name    : song.name;
+  const link    = isEd ? ed.link    : (song.karaoke_link||'');
 
-// ---- LOAD ----
-async function loadSongs() {
-  const { data, error } = await supabase_client
-    .from(TABLE)
-    .select('*')
-    .order('sort_order', { ascending: true });
+  const singerHtml = singers.length
+    ? singers.map(s=>`<span class="stag">${x(s)}</span>`).join('')
+    : `<span class="no-val">${isEd?'Tap to pick':'—'}</span>`;
 
-  if (error) { showStatus('Load error: ' + error.message, 'error'); return; }
-  songs = data || [];
-  renderList();
-}
-
-// ---- RENDER ----
-function renderList() {
-  const count = songs.length;
-  document.getElementById('song-count').textContent = count + (count === 1 ? ' song' : ' songs');
-
-  const container = document.getElementById('list-container');
-  if (!count) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-icon">🎵</div>
-        <div class="empty-text">No songs yet!</div>
-        <div class="empty-sub">Tap + to add your first song</div>
+  if(isEd){
+    div.innerHTML=`
+      <div class="cell c-num">${i+1}</div>
+      <div class="cell c-name">
+        <input id="n-${song.id}" type="text" value="${x(name)}" placeholder="Song name" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="cell c-singers" id="sc-${song.id}" title="Tap to select singers">${singerHtml}</div>
+      <div class="cell c-link">
+        <input id="l-${song.id}" type="url" value="${x(link)}" placeholder="YouTube URL" autocomplete="off">
+      </div>
+      <div class="cell c-act">
+        <button class="ab save" title="Save (Enter)" onclick="saveRow('${song.id}')">✓</button>
+        <button class="ab cancel" title="Cancel (Esc)" onclick="cancelRow('${song.id}')">✕</button>
       </div>`;
-    return;
-  }
-
-  const ul = document.createElement('ul');
-  ul.className = 'song-list';
-  ul.id = 'song-list';
-
-  songs.forEach((song, i) => {
-    const li = document.createElement('li');
-    li.className = 'song-card';
-    li.dataset.id = song.id;
-    li.dataset.index = i;
-    li.draggable = true;
-
-    const singers = (song.singers || []).join(', ');
-    const linkHtml = song.karaoke_link
-      ? `<a class="karaoke-link" href="${escHtml(song.karaoke_link)}" target="_blank" rel="noopener">🎧 Karaoke</a>`
-      : `<span style="color:var(--border);font-size:11px">No link</span>`;
-
-    const singerTags = (song.singers || []).map(s =>
-      `<span class="singer-tag">${escHtml(s)}</span>`).join('');
-
-    li.innerHTML = `
-      <div class="song-num">${i + 1}</div>
-      <div class="song-info">
-        <div class="song-name">${escHtml(song.name)}</div>
-        <div class="song-singers">${singerTags || '<span style="color:var(--muted);font-size:11px">No singer</span>'}</div>
-        ${linkHtml}
-      </div>
-      <div class="song-actions">
-        <button class="icon-btn edit" onclick="editSong('${song.id}')" title="Edit">✏️</button>
-        <button class="icon-btn delete" onclick="deleteSong('${song.id}')" title="Delete">🗑️</button>
-        <div class="drag-handle" title="Drag to reorder">⠿</div>
-      </div>
-    `;
-
-    // Desktop drag events
-    li.addEventListener('dragstart', onDragStart);
-    li.addEventListener('dragover', onDragOver);
-    li.addEventListener('drop', onDrop);
-    li.addEventListener('dragend', onDragEnd);
-
-    // Touch drag via handle
-    const handle = li.querySelector('.drag-handle');
-    handle.addEventListener('touchstart', onTouchStart, { passive: false });
-
-    ul.appendChild(li);
-  });
-
-  container.innerHTML = '';
-  container.appendChild(ul);
-  document.addEventListener('touchmove', onTouchMove, { passive: false });
-  document.addEventListener('touchend', onTouchEnd);
-}
-
-// ---- MODAL ----
-function buildSingerChips() {
-  const grid = document.getElementById('singer-grid');
-  grid.innerHTML = '';
-  COUSINS.forEach(name => {
-    const chip = document.createElement('div');
-    chip.className = 'singer-chip';
-    chip.textContent = name;
-    chip.dataset.name = name;
-    chip.addEventListener('click', () => toggleSinger(name, chip));
-    grid.appendChild(chip);
-  });
-}
-
-function toggleSinger(name, el) {
-  if (selectedSingers.includes(name)) {
-    selectedSingers = selectedSingers.filter(s => s !== name);
-    el.classList.remove('selected');
+    div.querySelector(`#sc-${song.id}`).onclick = e=>{e.stopPropagation();openPop(song.id,div.querySelector(`#sc-${song.id}`));};
   } else {
-    selectedSingers.push(name);
-    el.classList.add('selected');
+    const linkHtml = link
+      ? `<a href="${x(link)}" target="_blank" rel="noopener">▶ Link</a>`
+      : `<span class="no-val">—</span>`;
+    div.innerHTML=`
+      <div class="cell c-num" title="Drag to reorder"><span class="drag-icon">⠿</span><span style="font-size:9px">${i+1}</span></div>
+      <div class="cell c-name"><span class="dv">${x(name)}</span></div>
+      <div class="cell c-singers">${singerHtml}</div>
+      <div class="cell c-link">${linkHtml}</div>
+      <div class="cell c-act">
+        <button class="ab edit" title="Edit" onclick="startEdit('${song.id}')">✎</button>
+        <button class="ab del" title="Delete" onclick="delRow('${song.id}')">✕</button>
+      </div>`;
   }
+  return div;
 }
 
-function openModal(song = null) {
-  editingId = song ? song.id : null;
-  selectedSingers = song ? [...(song.singers || [])] : [];
-
-  document.getElementById('modal-title').textContent = song ? 'Edit Song' : 'Add New Song';
-  document.getElementById('inp-name').value = song ? song.name : '';
-  document.getElementById('inp-link').value = song ? (song.karaoke_link || '') : '';
-
-  // Reset chips
-  document.querySelectorAll('.singer-chip').forEach(chip => {
-    chip.classList.toggle('selected', selectedSingers.includes(chip.dataset.name));
-  });
-
-  document.getElementById('modal-overlay').classList.add('open');
-  setTimeout(() => document.getElementById('inp-name').focus(), 350);
+function rerenderRow(id){
+  const idx = songs.findIndex(s=>s.id===id);
+  if(idx<0) return;
+  const old = document.querySelector(`.row[data-id="${id}"]`);
+  if(old) old.replaceWith(mkRow(songs[idx],idx));
+  bindDrag();
 }
 
-function closeModal() {
-  document.getElementById('modal-overlay').classList.remove('open');
-  editingId = null;
-  selectedSingers = [];
+// ── EDIT ─────────────────────────────────────────
+function startEdit(id){
+  closePop();
+  const s = songs.find(s=>s.id===id);
+  if(!s) return;
+  editState[id]={name:s.name, singers:[...(s.singers||[])], link:s.karaoke_link||''};
+  rerenderRow(id);
+  setTimeout(()=>{const n=document.getElementById('n-'+id); if(n){n.focus();n.select();}},40);
 }
 
-function handleOverlayClick(e) {
-  if (e.target === document.getElementById('modal-overlay')) closeModal();
+function cancelRow(id){
+  closePop();
+  const s = songs.find(s=>s.id===id);
+  if(s&&s._new){ songs=songs.filter(s=>s.id!==id); render(); }
+  else{ delete editState[id]; rerenderRow(id); }
 }
 
-async function saveSong() {
-  const name = document.getElementById('inp-name').value.trim();
-  if (!name) { showStatus('Song name is required', 'error'); return; }
+async function saveRow(id){
+  closePop();
+  const ed = editState[id]; if(!ed) return;
+  const ni = document.getElementById('n-'+id);
+  const li = document.getElementById('l-'+id);
+  const name = ni ? ni.value.trim() : ed.name;
+  const link = li ? li.value.trim() : ed.link;
+  if(!name){ toast('Song name required','err'); ni&&ni.focus(); return; }
 
-  const link = document.getElementById('inp-link').value.trim();
-
-  if (editingId) {
-    const { error } = await supabase_client.from(TABLE)
-      .update({ name, singers: selectedSingers, karaoke_link: link })
-      .eq('id', editingId);
-    if (error) { showStatus('Save error: ' + error.message, 'error'); return; }
-    showStatus('Song updated ✓', 'success');
+  const s = songs.find(s=>s.id===id);
+  if(s&&s._new){
+    const maxO = songs.filter(s=>!s._new).reduce((m,s)=>Math.max(m,s.sort_order||0),-1);
+    const {error} = await db.from(TABLE).insert({name,singers:ed.singers,karaoke_link:link,sort_order:maxO+1});
+    if(error){toast('Error: '+error.message,'err');return;}
+    delete editState[id];
+    await load(); toast('Song added ✓','ok');
   } else {
-    const maxOrder = songs.length > 0 ? Math.max(...songs.map(s => s.sort_order || 0)) : -1;
-    const { error } = await supabase_client.from(TABLE).insert({
-      name, singers: selectedSingers, karaoke_link: link, sort_order: maxOrder + 1
-    });
-    if (error) { showStatus('Save error: ' + error.message, 'error'); return; }
-    showStatus('Song added ✓', 'success');
-  }
-
-  closeModal();
-  await loadSongs();
-}
-
-function editSong(id) {
-  const song = songs.find(s => s.id === id);
-  if (song) openModal(song);
-}
-
-async function deleteSong(id) {
-  const song = songs.find(s => s.id === id);
-  if (!confirm(`Delete "${song?.name}"?`)) return;
-  const { error } = await supabase_client.from(TABLE).delete().eq('id', id);
-  if (error) { showStatus('Delete error: ' + error.message, 'error'); return; }
-  showStatus('Song deleted', 'info');
-  await loadSongs();
-}
-
-// ---- DRAG & DROP (Desktop) ----
-function onDragStart(e) {
-  dragSrc = this;
-  this.classList.add('dragging');
-  e.dataTransfer.effectAllowed = 'move';
-}
-function onDragOver(e) {
-  e.preventDefault();
-  document.querySelectorAll('.song-card').forEach(c => c.classList.remove('drag-over'));
-  this.classList.add('drag-over');
-}
-function onDrop(e) {
-  e.preventDefault();
-  if (dragSrc && dragSrc !== this) {
-    const srcIdx = parseInt(dragSrc.dataset.index);
-    const dstIdx = parseInt(this.dataset.index);
-    reorderAndSave(srcIdx, dstIdx);
+    const {error} = await db.from(TABLE).update({name,singers:ed.singers,karaoke_link:link}).eq('id',id);
+    if(error){toast('Error: '+error.message,'err');return;}
+    const s2=songs.find(s=>s.id===id);
+    if(s2){s2.name=name;s2.singers=ed.singers;s2.karaoke_link=link;}
+    delete editState[id];
+    rerenderRow(id); toast('Saved ✓','ok');
   }
 }
-function onDragEnd() {
-  document.querySelectorAll('.song-card').forEach(c => {
-    c.classList.remove('dragging', 'drag-over');
+
+async function delRow(id){
+  const s=songs.find(s=>s.id===id);
+  if(!confirm(`Delete "${s?.name||'this song'}"?`)) return;
+  const {error}=await db.from(TABLE).delete().eq('id',id);
+  if(error){toast('Error: '+error.message,'err');return;}
+  songs=songs.filter(s=>s.id!==id);
+  render(); toast('Deleted','inf');
+}
+
+// ── ADD NEW ───────────────────────────────────────
+function addRow(){
+  closePop();
+  const tid='new-'+Date.now();
+  const ns={id:tid,name:'',singers:[],karaoke_link:'',sort_order:999,_new:true};
+  songs.push(ns);
+  editState[tid]={name:'',singers:[],link:''};
+  const b=document.getElementById('body');
+  const emp=b.querySelector('.empty');
+  if(emp) emp.remove();
+  const row=mkRow(ns,songs.length-1);
+  b.appendChild(row);
+  row.scrollIntoView({behavior:'smooth',block:'nearest'});
+  setTimeout(()=>{const n=document.getElementById('n-'+tid);if(n)n.focus();},80);
+}
+
+// ── SINGER POPUP ──────────────────────────────────
+function openPop(rowId, anchor){
+  if(popTarget===rowId){closePop();return;}
+  popTarget=rowId;
+  const pop=document.getElementById('spop');
+  const grid=document.getElementById('spop-grid');
+  grid.innerHTML='';
+  const sel=editState[rowId]?.singers||[];
+  COUSINS.forEach(name=>{
+    const b=document.createElement('button');
+    b.className='sc'+(sel.includes(name)?' on':'');
+    b.textContent=name;
+    b.onclick=e=>{e.stopPropagation();toggleSinger(rowId,name,b);};
+    grid.appendChild(b);
   });
-  dragSrc = null;
+  pop.style.display='block';
+  // Position
+  const rect=anchor.getBoundingClientRect();
+  const pw=200, ph=210;
+  let top=rect.bottom+4, left=rect.left;
+  if(top+ph>window.innerHeight) top=rect.top-ph-4;
+  if(left+pw>window.innerWidth) left=window.innerWidth-pw-8;
+  pop.style.top=top+'px'; pop.style.left=left+'px'; pop.style.width=pw+'px';
 }
 
-// ---- TOUCH DRAG ----
-function onTouchStart(e) {
-  e.preventDefault();
-  const card = e.target.closest('.song-card');
-  if (!card) return;
-  touchDragEl = card;
-  touchDragIndex = parseInt(card.dataset.index);
+function toggleSinger(rowId,name,chip){
+  if(!editState[rowId]) return;
+  const arr=editState[rowId].singers;
+  if(arr.includes(name)){ editState[rowId].singers=arr.filter(s=>s!==name); chip.classList.remove('on'); }
+  else{ arr.push(name); chip.classList.add('on'); }
+  // update cell inline
+  const cell=document.getElementById('sc-'+rowId);
+  if(cell){
+    const s=editState[rowId].singers;
+    cell.innerHTML=s.length?s.map(n=>`<span class="stag">${x(n)}</span>`).join(''):'<span class="no-val">Tap to pick</span>';
+    cell.onclick=e=>{e.stopPropagation();openPop(rowId,cell);};
+  }
+}
 
-  const rect = card.getBoundingClientRect();
-  touchClone = card.cloneNode(true);
-  touchClone.style.cssText = `
-    position:fixed; left:${rect.left}px; top:${rect.top}px;
-    width:${rect.width}px; opacity:0.85; z-index:999;
-    pointer-events:none; border-color:var(--gold);
-    box-shadow:0 12px 40px rgba(0,0,0,0.6);
-    transition:none;
-  `;
+function closePop(){
+  popTarget=null;
+  document.getElementById('spop').style.display='none';
+}
+
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#spop')&&!e.target.id.startsWith('sc-')&&!e.target.closest('[id^="sc-"]')) closePop();
+});
+
+// ── KEYBOARD ──────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  const ids=Object.keys(editState);
+  if(!ids.length) return;
+  const id=ids[ids.length-1];
+  if(e.key==='Enter'){e.preventDefault();saveRow(id);}
+  if(e.key==='Escape'){cancelRow(id);}
+});
+
+// ── DRAG & DROP ───────────────────────────────────
+function bindDrag(){
+  document.querySelectorAll('.row:not(.editing)').forEach(row=>{
+    row.ondragstart=e=>{dragSrcId=row.dataset.id;row.classList.add('dragging');e.dataTransfer.effectAllowed='move';};
+    row.ondragover=e=>{e.preventDefault();document.querySelectorAll('.row').forEach(r=>r.classList.remove('drag-over'));row.classList.add('drag-over');};
+    row.ondrop=e=>{e.preventDefault();doReorder(dragSrcId,row.dataset.id);};
+    row.ondragend=()=>{document.querySelectorAll('.row').forEach(r=>r.classList.remove('dragging','drag-over'));dragSrcId=null;};
+    // Touch drag via ⠿ handle
+    const h=row.querySelector('.c-num');
+    if(h){ h.ontouchstart=e=>{e.preventDefault();startTouch(e,row);}; }
+  });
+}
+
+function startTouch(e,row){
+  touchSrcId=row.dataset.id;
+  const rect=row.getBoundingClientRect();
+  touchClone=row.cloneNode(true);
+  touchClone.style.cssText=`position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;
+    opacity:.7;z-index:999;pointer-events:none;border-color:var(--teal);`;
   document.body.appendChild(touchClone);
-  card.classList.add('dragging');
+  row.classList.add('dragging');
+  document.ontouchmove=ev=>{
+    ev.preventDefault();
+    const t=ev.touches[0];
+    touchClone.style.top=(t.clientY-rect.height/2)+'px';
+    touchClone.style.display='none';
+    const under=document.elementFromPoint(t.clientX,t.clientY);
+    touchClone.style.display='';
+    document.querySelectorAll('.row').forEach(r=>r.classList.remove('drag-over'));
+    const ov=under?.closest('.row');
+    if(ov&&ov.dataset.id!==touchSrcId) ov.classList.add('drag-over');
+  };
+  document.ontouchend=ev=>{
+    const t=ev.changedTouches[0];
+    if(touchClone){touchClone.remove();touchClone=null;}
+    document.querySelectorAll('.row').forEach(r=>r.classList.remove('dragging','drag-over'));
+    const under=document.elementFromPoint(t.clientX,t.clientY);
+    const ov=under?.closest('.row');
+    if(ov&&ov.dataset.id!==touchSrcId) doReorder(touchSrcId,ov.dataset.id);
+    touchSrcId=null; document.ontouchmove=null; document.ontouchend=null;
+  };
 }
 
-function onTouchMove(e) {
-  if (!touchClone) return;
-  e.preventDefault();
-  const touch = e.touches[0];
-  const rect = touchDragEl.getBoundingClientRect();
-  touchClone.style.top = (touch.clientY - rect.height / 2) + 'px';
-  touchClone.style.left = rect.left + 'px';
-
-  // Find card under touch
-  touchClone.style.display = 'none';
-  const el = document.elementFromPoint(touch.clientX, touch.clientY);
-  touchClone.style.display = '';
-  const overCard = el ? el.closest('.song-card') : null;
-
-  document.querySelectorAll('.song-card').forEach(c => c.classList.remove('drag-over'));
-  if (overCard && overCard !== touchDragEl) {
-    overCard.classList.add('drag-over');
-  }
+async function doReorder(srcId,dstId){
+  if(!srcId||!dstId||srcId===dstId) return;
+  const si=songs.findIndex(s=>s.id===srcId);
+  const di=songs.findIndex(s=>s.id===dstId);
+  if(si<0||di<0) return;
+  const [mv]=songs.splice(si,1); songs.splice(di,0,mv);
+  songs.forEach((s,i)=>s.sort_order=i);
+  render();
+  for(const s of songs) await db.from(TABLE).update({sort_order:s.sort_order}).eq('id',s.id);
 }
 
-function onTouchEnd(e) {
-  if (!touchClone) return;
-  const touch = e.changedTouches[0];
-  touchClone.style.display = 'none';
-  const el = document.elementFromPoint(touch.clientX, touch.clientY);
-  const overCard = el ? el.closest('.song-card') : null;
-
-  document.body.removeChild(touchClone);
-  touchClone = null;
-  touchDragEl.classList.remove('dragging');
-  document.querySelectorAll('.song-card').forEach(c => c.classList.remove('drag-over'));
-
-  if (overCard && overCard !== touchDragEl) {
-    const dstIdx = parseInt(overCard.dataset.index);
-    reorderAndSave(touchDragIndex, dstIdx);
-  }
-  touchDragEl = null;
-  touchDragIndex = null;
+// ── UTILS ─────────────────────────────────────────
+function x(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+let _st;
+function toast(msg,type){
+  const el=document.getElementById('status');
+  el.textContent=msg; el.className='show '+type;
+  clearTimeout(_st); _st=setTimeout(()=>{el.className='';el.textContent='';},2600);
 }
-
-async function reorderAndSave(srcIdx, dstIdx) {
-  if (srcIdx === dstIdx) return;
-  const arr = [...songs];
-  const [moved] = arr.splice(srcIdx, 1);
-  arr.splice(dstIdx, 0, moved);
-  songs = arr;
-
-  // Optimistic render
-  songs.forEach((s, i) => s.sort_order = i);
-  renderList();
-
-  // Persist to Supabase
-  const updates = songs.map((s, i) => ({ id: s.id, sort_order: i }));
-  for (const u of updates) {
-    await supabase_client.from(TABLE).update({ sort_order: u.sort_order }).eq('id', u.id);
-  }
-}
-
-// ---- UTILS ----
-function escHtml(str) {
-  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-let statusTimer;
-function showStatus(msg, type) {
-  const bar = document.getElementById('status-bar');
-  bar.textContent = msg;
-  bar.className = type;
-  clearTimeout(statusTimer);
-  statusTimer = setTimeout(() => { bar.className = ''; bar.textContent = ''; }, 3500);
+function setFdb(s){
+  const el=document.getElementById('fdb');
+  el.textContent=s==='ok'?'● connected · supabase':s==='err'?'● error':'● connecting…';
 }
 
 init();
 </script>
-
-<!-- Supabase Table Setup Instructions (hidden comment) -->
-<!--
-CREATE TABLE IF NOT EXISTS setlist_songs (
-  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  name text NOT NULL,
-  singers text[] DEFAULT '{}',
-  karaoke_link text DEFAULT '',
-  sort_order integer DEFAULT 0,
-  created_at timestamptz DEFAULT now()
-);
-
--- Enable Row Level Security (optional, for open access):
-ALTER TABLE setlist_songs ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow all" ON setlist_songs FOR ALL USING (true) WITH CHECK (true);
--->
 </body>
 </html>
