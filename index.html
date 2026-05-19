@@ -3,16 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>🎤 Stage Show Setlist</title>
+<title>🎤 Sparsh — June 13th 2026</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Geist+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
 :root{
   --bg:#080810;--s1:#10101c;--s2:#18182a;--s3:#20203a;
   --border:#26263a;--border2:#38385a;
   --gold:#fbbf24;--gold-dim:rgba(251,191,36,0.13);
   --rose:#fb7185;--teal:#2dd4bf;--teal-dim:rgba(45,212,191,0.12);
+  --green:#4ade80;--green-dim:rgba(74,222,128,0.12);
   --text:#e2e2f0;--text2:#8080a8;--r:8px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -21,45 +23,50 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);
   display:flex;flex-direction:column;height:100dvh}
 
 /* ── HEADER ── */
-header{flex-shrink:0;display:flex;align-items:center;gap:8px;
-  padding:9px 12px;background:var(--s1);border-bottom:1px solid var(--border);}
-.logo{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;
+header{flex-shrink:0;display:flex;align-items:center;gap:10px;
+  padding:11px 14px;background:var(--s1);border-bottom:1px solid var(--border);}
+.logo-wrap{display:flex;flex-direction:column;line-height:1.2;}
+.logo{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;
   background:linear-gradient(110deg,var(--gold),var(--rose));
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.badge{font-family:'Geist Mono',monospace;font-size:10px;color:var(--text2);
-  background:var(--s2);border:1px solid var(--border);border-radius:20px;padding:2px 7px;}
+.logo-date{font-family:'Geist Mono',monospace;font-size:9px;color:var(--text2);
+  letter-spacing:.6px;text-transform:uppercase;margin-top:1px;}
+.badge{font-family:'Geist Mono',monospace;font-size:11px;color:var(--text2);
+  background:var(--s2);border:1px solid var(--border);border-radius:20px;padding:3px 9px;white-space:nowrap;}
 .spacer{flex:1}
-.hbtn{width:30px;height:30px;border-radius:var(--r);border:1px solid var(--border);
-  background:var(--s2);color:var(--text2);font-size:13px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.hbtn{width:38px;height:38px;border-radius:var(--r);border:1px solid var(--border);
+  background:var(--s2);color:var(--text2);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
 .hbtn:hover{border-color:var(--gold);color:var(--gold)}
 .hbtn:active{transform:scale(.9)}
+.hbtn.export-btn{border-color:var(--border2);color:var(--text);}
+.hbtn.export-btn:hover{border-color:var(--teal);color:var(--teal);}
 .hbtn.spin svg{animation:spin .65s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* ── STATUS ── */
-#status{flex-shrink:0;font-size:11px;font-weight:600;text-align:center;
+#status{flex-shrink:0;font-size:13px;font-weight:600;text-align:center;
   max-height:0;overflow:hidden;transition:max-height .2s,padding .2s;}
-#status.show{max-height:28px;padding:6px 0}
+#status.show{max-height:32px;padding:7px 0}
 #status.err{background:rgba(251,113,133,.1);color:var(--rose)}
 #status.ok{background:rgba(45,212,191,.08);color:var(--teal)}
 #status.inf{background:rgba(251,191,36,.07);color:var(--gold)}
 
 /* ── COLUMN HEADS ── */
 .col-head{flex-shrink:0;display:grid;
-  grid-template-columns:30px 1fr 1fr 72px 50px;
-  padding:0 10px;height:26px;align-items:center;
+  grid-template-columns:34px 1fr 1fr 80px 62px;
+  padding:0 10px;height:30px;align-items:center;
   background:var(--s1);border-bottom:1px solid var(--border);}
-.ch{font-size:9px;font-weight:700;color:var(--text2);
-  text-transform:uppercase;letter-spacing:.7px;padding:0 3px;}
+.ch{font-size:10px;font-weight:700;color:var(--text2);
+  text-transform:uppercase;letter-spacing:.7px;padding:0 4px;}
 
 /* ── SCROLL BODY ── */
 .scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
 
 /* ── ROW ── */
 .row{display:grid;
-  grid-template-columns:30px 1fr 1fr 72px 50px;
-  min-height:38px;border-bottom:1px solid var(--border);
+  grid-template-columns:34px 1fr 1fr 80px 62px;
+  min-height:46px;border-bottom:1px solid var(--border);
   background:var(--s1);align-items:stretch;position:relative;
   transition:background .12s;}
 .row:hover:not(.editing){background:var(--s2)}
@@ -69,34 +76,36 @@ header{flex-shrink:0;display:flex;align-items:center;gap:8px;
 .row.drag-over{border-top:2px solid var(--teal)}
 
 /* cells */
-.cell{display:flex;align-items:center;padding:0 4px;min-width:0;overflow:hidden;}
+.cell{display:flex;align-items:center;padding:0 5px;min-width:0;overflow:hidden;}
 .c-num{justify-content:center;
-  font-family:'Geist Mono',monospace;font-size:10px;color:var(--border2);
-  cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;flex-direction:column;gap:1px;}
-.row.editing .c-num{cursor:default;color:rgba(251,191,36,.4);font-size:11px;}
-.drag-icon{font-size:13px;line-height:1}
+  font-family:'Geist Mono',monospace;font-size:11px;color:var(--border2);
+  cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;
+  flex-direction:column;gap:2px;}
+.row.editing .c-num{cursor:default;color:rgba(251,191,36,.4);}
+.drag-icon{font-size:15px;line-height:1}
 
-.c-name{font-size:13px;font-weight:500;}
+.c-name{font-size:15px;font-weight:500;}
 .c-name .dv{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;}
 .c-name input{width:100%;background:transparent;border:none;outline:none;
-  color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;}
+  color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:500;}
 
-.c-singers{font-size:11px;flex-wrap:wrap;gap:3px;cursor:default;}
+.c-singers{font-size:13px;flex-wrap:wrap;gap:3px;cursor:default;}
 .row.editing .c-singers{cursor:pointer;}
 .stag{background:var(--gold-dim);color:var(--gold);border-radius:4px;
-  padding:1px 5px;font-size:10px;font-weight:600;white-space:nowrap;}
-.no-val{color:var(--border2);font-size:10px;}
+  padding:2px 6px;font-size:11px;font-weight:600;white-space:nowrap;}
+.no-val{color:var(--border2);font-size:11px;}
 
-.c-link{font-size:11px;}
-.c-link a{color:var(--teal);text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;}
+.c-link{font-size:12px;}
+.c-link a{color:var(--teal);text-decoration:none;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;display:block;max-width:100%;}
 .c-link a:hover{text-decoration:underline}
 .c-link input{width:100%;background:transparent;border:none;outline:none;
-  color:var(--teal);font-family:'DM Sans',sans-serif;font-size:11px;}
-.c-link .no-val{color:var(--border2);font-size:10px;}
+  color:var(--teal);font-family:'DM Sans',sans-serif;font-size:12px;}
+.c-link .no-val{color:var(--border2);font-size:11px;}
 
-.c-act{justify-content:center;gap:3px;padding:0 3px;}
-.ab{width:22px;height:22px;border-radius:5px;border:none;background:transparent;
-  color:var(--text2);font-size:13px;cursor:pointer;
+.c-act{justify-content:center;gap:4px;padding:0 4px;}
+.ab{width:28px;height:28px;border-radius:6px;border:none;background:transparent;
+  color:var(--text2);font-size:17px;cursor:pointer;
   display:flex;align-items:center;justify-content:center;transition:all .12s;flex-shrink:0;}
 .ab:active{transform:scale(.88)}
 .ab.save{color:var(--teal);}
@@ -106,58 +115,102 @@ header{flex-shrink:0;display:flex;align-items:center;gap:8px;
 .ab.cancel:hover{color:var(--rose)}
 
 /* ── ADD ROW BUTTON ── */
-.add-btn{display:none;width:100%;padding:9px 12px;
+.add-btn{display:none;width:100%;padding:12px 14px;
   background:transparent;border:none;border-bottom:1px solid var(--border);
-  color:var(--text2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;
+  color:var(--text2);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;
   cursor:pointer;text-align:left;transition:color .15s;}
 .add-btn:hover{color:var(--gold)}
-.add-btn .plus{font-size:16px;margin-right:6px;vertical-align:middle;}
+.add-btn .plus{font-size:18px;margin-right:8px;vertical-align:middle;}
 
 /* ── SINGER POPUP ── */
-#spop{position:fixed;z-index:200;display:none;
-  background:var(--s2);border:1px solid var(--border2);border-radius:10px;
-  padding:8px;box-shadow:0 8px 36px rgba(0,0,0,.75);
-  display:none;}
-.spop-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
-.sc{padding:7px 10px;border-radius:6px;border:1px solid var(--border);
+#spop{position:fixed;z-index:200;
+  background:var(--s2);border:1px solid var(--border2);border-radius:12px;
+  padding:10px;box-shadow:0 8px 36px rgba(0,0,0,.75);display:none;}
+.spop-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.sc{padding:10px 12px;border-radius:7px;border:1px solid var(--border);
   background:transparent;color:var(--text2);font-family:'DM Sans',sans-serif;
-  font-size:12px;font-weight:500;cursor:pointer;text-align:center;transition:all .12s;}
+  font-size:14px;font-weight:500;cursor:pointer;text-align:center;transition:all .12s;}
 .sc.on{background:var(--gold-dim);border-color:var(--gold);color:var(--gold);font-weight:700}
 .sc:hover:not(.on){background:var(--s3)}
-.sdone{margin-top:5px;width:100%;padding:7px;border-radius:6px;border:none;
+.sdone{margin-top:6px;width:100%;padding:10px;border-radius:7px;border:none;
   background:linear-gradient(90deg,var(--gold),#f59e0b);
-  color:#080810;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;}
+  color:#080810;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;}
+
+/* ── EXPORT MODAL ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(4px);
+  z-index:300;display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .25s;}
+.overlay.open{opacity:1;pointer-events:all;}
+.modal{background:var(--s2);border-radius:22px 22px 0 0;
+  padding:20px 18px 40px;width:100%;max-width:500px;
+  border-top:1px solid var(--border2);
+  transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1);}
+.overlay.open .modal{transform:translateY(0);}
+.m-handle{width:38px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 18px;}
+.m-title{font-family:'Syne',sans-serif;font-size:19px;font-weight:800;color:var(--gold);margin-bottom:4px;}
+.m-sub{font-size:13px;color:var(--text2);margin-bottom:20px;}
+
+.exp-opt{width:100%;display:flex;align-items:center;gap:14px;
+  padding:16px;border-radius:12px;border:1px solid var(--border2);
+  background:var(--s3);cursor:pointer;transition:all .15s;
+  margin-bottom:10px;text-align:left;font-family:'DM Sans',sans-serif;}
+.exp-opt:hover{border-color:var(--gold);background:rgba(251,191,36,.04);}
+.exp-opt:active{transform:scale(.98);}
+.exp-opt.drive:hover{border-color:var(--green);}
+.eico{font-size:28px;flex-shrink:0;width:36px;text-align:center;}
+.etxt{}
+.elabel{font-size:15px;font-weight:600;color:var(--text);display:block;margin-bottom:2px;}
+.edesc{font-size:12px;color:var(--text2);}
+.m-cancel{width:100%;padding:14px;border-radius:10px;border:1px solid var(--border);
+  background:transparent;color:var(--text2);font-family:'DM Sans',sans-serif;
+  font-size:14px;cursor:pointer;margin-top:4px;transition:all .15s;}
+.m-cancel:hover{color:var(--rose);border-color:rgba(251,113,133,.3);}
+
+/* Drive sign-in note */
+.drive-note{font-size:11px;color:var(--text2);text-align:center;margin-top:10px;line-height:1.5;}
+.drive-note a{color:var(--teal);}
 
 /* ── EMPTY / LOADING ── */
 .empty,.loading{display:flex;flex-direction:column;align-items:center;
   justify-content:center;height:160px;gap:6px;color:var(--text2);}
-.ei{font-size:32px;opacity:.45}
-.et{font-size:13px;font-weight:500;color:var(--text)}
-.es{font-size:11px}
-.dspin{width:5px;height:5px;border-radius:50%;background:var(--gold);
+.ei{font-size:34px;opacity:.45}
+.et{font-size:14px;font-weight:500;color:var(--text)}
+.es{font-size:12px}
+.dspin{width:6px;height:6px;border-radius:50%;background:var(--gold);
   animation:db .7s ease-in-out infinite alternate}
 @keyframes db{from{opacity:.2;transform:scale(.5)}to{opacity:1;transform:scale(1.3)}}
 
 /* ── FOOTER ── */
 footer{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;
-  padding:5px 12px;background:var(--s1);border-top:1px solid var(--border);
-  font-size:9px;color:var(--text2);font-family:'Geist Mono',monospace;}
+  padding:6px 14px;background:var(--s1);border-top:1px solid var(--border);
+  font-size:10px;color:var(--text2);font-family:'Geist Mono',monospace;}
 
-@media(max-width:420px){
-  .col-head,.row{grid-template-columns:26px 1fr 1fr 64px 46px}
-  .c-name input,.c-name .dv{font-size:12px}
-  .ch{font-size:8px}
+@media(max-width:400px){
+  .col-head,.row{grid-template-columns:30px 1fr 1fr 72px 58px}
+  .c-name input,.c-name .dv{font-size:14px}
 }
 </style>
 </head>
 <body>
 
 <header>
-  <span class="logo">🎤 Setlist</span>
+  <div class="logo-wrap">
+    <span class="logo">🎤 Sparsh</span>
+    <span class="logo-date">June 13th, 2026</span>
+  </div>
   <span class="badge" id="hcount">— songs</span>
   <div class="spacer"></div>
+  <!-- Export button -->
+  <button class="hbtn export-btn" title="Export" onclick="openExport()">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="7 10 12 15 17 10"/>
+      <line x1="12" y1="15" x2="12" y2="3"/>
+    </svg>
+  </button>
+  <!-- Refresh button -->
   <button class="hbtn" id="rbtn" title="Refresh" onclick="doRefresh()">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
       <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
     </svg>
@@ -176,7 +229,7 @@ footer{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
 
 <div class="scroll" id="scroll">
   <div id="body">
-    <div class="loading"><div class="dspin"></div><span style="font-size:12px">Connecting…</span></div>
+    <div class="loading"><div class="dspin"></div><span style="font-size:13px">Connecting…</span></div>
   </div>
   <button class="add-btn" id="addbtn" onclick="addRow()">
     <span class="plus">+</span> Add Song
@@ -184,7 +237,7 @@ footer{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
 </div>
 
 <footer>
-  <span>cousins' stage show</span>
+  <span>sparsh · cousins' setlist</span>
   <span id="fdb">● connecting</span>
 </footer>
 
@@ -194,12 +247,43 @@ footer{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
   <button class="sdone" onclick="closePop()">Done ✓</button>
 </div>
 
+<!-- Export modal -->
+<div class="overlay" id="exp-overlay" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <div class="m-handle"></div>
+    <div class="m-title">Export Setlist</div>
+    <div class="m-sub">Save your song list as an Excel file</div>
+
+    <button class="exp-opt" onclick="exportExcel()">
+      <span class="eico">📊</span>
+      <span class="etxt">
+        <span class="elabel">Download as Excel</span>
+        <span class="edesc">Saves Sparsh_Setlist.xlsx to your device</span>
+      </span>
+    </button>
+
+    <button class="exp-opt drive" onclick="exportToDrive()">
+      <span class="eico">☁️</span>
+      <span class="etxt">
+        <span class="elabel">Upload to Google Drive</span>
+        <span class="edesc">Signs in with Google and uploads to your Drive</span>
+      </span>
+    </button>
+
+    <button class="m-cancel" onclick="closeExport()">Cancel</button>
+  </div>
+</div>
+
 <script>
 // ── CONFIG ──────────────────────────────────────
 const SUPABASE_URL = 'https://cahvshxueqvixsgtucqb.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_hAS0dxhq4DtgmU-NjSi1RA_XSHGm2CX';
-const TABLE = 'setlist_songs';
-const COUSINS = ['Ravi','Soujanya','Soumya','Sravan','Saradhi','Harini'];
+const TABLE        = 'setlist_songs';
+const COUSINS      = ['Ravi','Soujanya','Soumya','Sravan','Saradhi','Harini'];
+const FILE_NAME    = 'Sparsh_Setlist_June13.xlsx';
+// Google API – fill in your own Client ID & API Key if you want Drive upload
+const GAPI_CLIENT_ID = '';   // e.g. '123456-abc.apps.googleusercontent.com'
+const GAPI_API_KEY   = '';   // e.g. 'AIzaSy...'
 // ────────────────────────────────────────────────
 
 let db, songs = [], editState = {}, popTarget = null;
@@ -229,9 +313,9 @@ async function doRefresh(){
 
 // ── RENDER ───────────────────────────────────────
 function render(){
-  const b = document.getElementById('body');
+  const b  = document.getElementById('body');
   const ab = document.getElementById('addbtn');
-  ab.style.display='block';
+  ab.style.display = 'block';
   document.getElementById('hcount').textContent = songs.length+(songs.length===1?' song':' songs');
 
   if(!songs.length){
@@ -243,14 +327,14 @@ function render(){
   bindDrag();
 }
 
-function mkRow(song, i){
-  const ed = editState[song.id];
+function mkRow(song,i){
+  const ed   = editState[song.id];
   const isEd = !!ed;
-  const div = document.createElement('div');
-  div.className = 'row'+(isEd?' editing':'')+(song._new?' new-row':'');
-  div.dataset.id = song.id;
+  const div  = document.createElement('div');
+  div.className = 'row'+(isEd?' editing':'');
+  div.dataset.id  = song.id;
   div.dataset.idx = i;
-  if(!isEd) div.draggable=true;
+  if(!isEd) div.draggable = true;
 
   const singers = isEd ? ed.singers : (song.singers||[]);
   const name    = isEd ? ed.name    : song.name;
@@ -274,19 +358,25 @@ function mkRow(song, i){
         <button class="ab save" title="Save (Enter)" onclick="saveRow('${song.id}')">✓</button>
         <button class="ab cancel" title="Cancel (Esc)" onclick="cancelRow('${song.id}')">✕</button>
       </div>`;
-    div.querySelector(`#sc-${song.id}`).onclick = e=>{e.stopPropagation();openPop(song.id,div.querySelector(`#sc-${song.id}`));};
+    div.querySelector(`#sc-${song.id}`).onclick = e=>{
+      e.stopPropagation();
+      openPop(song.id, div.querySelector(`#sc-${song.id}`));
+    };
   } else {
     const linkHtml = link
       ? `<a href="${x(link)}" target="_blank" rel="noopener">▶ Link</a>`
       : `<span class="no-val">—</span>`;
     div.innerHTML=`
-      <div class="cell c-num" title="Drag to reorder"><span class="drag-icon">⠿</span><span style="font-size:9px">${i+1}</span></div>
+      <div class="cell c-num" title="Drag to reorder">
+        <span class="drag-icon">⠿</span>
+        <span style="font-size:10px;font-family:'Geist Mono',monospace">${i+1}</span>
+      </div>
       <div class="cell c-name"><span class="dv">${x(name)}</span></div>
       <div class="cell c-singers">${singerHtml}</div>
       <div class="cell c-link">${linkHtml}</div>
       <div class="cell c-act">
         <button class="ab edit" title="Edit" onclick="startEdit('${song.id}')">✎</button>
-        <button class="ab del" title="Delete" onclick="delRow('${song.id}')">✕</button>
+        <button class="ab del"  title="Delete" onclick="delRow('${song.id}')">✕</button>
       </div>`;
   }
   return div;
@@ -307,7 +397,7 @@ function startEdit(id){
   if(!s) return;
   editState[id]={name:s.name, singers:[...(s.singers||[])], link:s.karaoke_link||''};
   rerenderRow(id);
-  setTimeout(()=>{const n=document.getElementById('n-'+id); if(n){n.focus();n.select();}},40);
+  setTimeout(()=>{const n=document.getElementById('n-'+id);if(n){n.focus();n.select();}},40);
 }
 
 function cancelRow(id){
@@ -320,8 +410,8 @@ function cancelRow(id){
 async function saveRow(id){
   closePop();
   const ed = editState[id]; if(!ed) return;
-  const ni = document.getElementById('n-'+id);
-  const li = document.getElementById('l-'+id);
+  const ni   = document.getElementById('n-'+id);
+  const li   = document.getElementById('l-'+id);
   const name = ni ? ni.value.trim() : ed.name;
   const link = li ? li.value.trim() : ed.link;
   if(!name){ toast('Song name required','err'); ni&&ni.focus(); return; }
@@ -329,40 +419,40 @@ async function saveRow(id){
   const s = songs.find(s=>s.id===id);
   if(s&&s._new){
     const maxO = songs.filter(s=>!s._new).reduce((m,s)=>Math.max(m,s.sort_order||0),-1);
-    const {error} = await db.from(TABLE).insert({name,singers:ed.singers,karaoke_link:link,sort_order:maxO+1});
+    const {error} = await db.from(TABLE).insert({name, singers:ed.singers, karaoke_link:link, sort_order:maxO+1});
     if(error){toast('Error: '+error.message,'err');return;}
     delete editState[id];
     await load(); toast('Song added ✓','ok');
   } else {
-    const {error} = await db.from(TABLE).update({name,singers:ed.singers,karaoke_link:link}).eq('id',id);
+    const {error} = await db.from(TABLE).update({name, singers:ed.singers, karaoke_link:link}).eq('id',id);
     if(error){toast('Error: '+error.message,'err');return;}
-    const s2=songs.find(s=>s.id===id);
-    if(s2){s2.name=name;s2.singers=ed.singers;s2.karaoke_link=link;}
+    const s2 = songs.find(s=>s.id===id);
+    if(s2){s2.name=name; s2.singers=ed.singers; s2.karaoke_link=link;}
     delete editState[id];
     rerenderRow(id); toast('Saved ✓','ok');
   }
 }
 
 async function delRow(id){
-  const s=songs.find(s=>s.id===id);
+  const s = songs.find(s=>s.id===id);
   if(!confirm(`Delete "${s?.name||'this song'}"?`)) return;
-  const {error}=await db.from(TABLE).delete().eq('id',id);
+  const {error} = await db.from(TABLE).delete().eq('id',id);
   if(error){toast('Error: '+error.message,'err');return;}
-  songs=songs.filter(s=>s.id!==id);
+  songs = songs.filter(s=>s.id!==id);
   render(); toast('Deleted','inf');
 }
 
 // ── ADD NEW ───────────────────────────────────────
 function addRow(){
   closePop();
-  const tid='new-'+Date.now();
-  const ns={id:tid,name:'',singers:[],karaoke_link:'',sort_order:999,_new:true};
+  const tid = 'new-'+Date.now();
+  const ns  = {id:tid, name:'', singers:[], karaoke_link:'', sort_order:999, _new:true};
   songs.push(ns);
-  editState[tid]={name:'',singers:[],link:''};
-  const b=document.getElementById('body');
-  const emp=b.querySelector('.empty');
+  editState[tid] = {name:'', singers:[], link:''};
+  const b   = document.getElementById('body');
+  const emp = b.querySelector('.empty');
   if(emp) emp.remove();
-  const row=mkRow(ns,songs.length-1);
+  const row = mkRow(ns, songs.length-1);
   b.appendChild(row);
   row.scrollIntoView({behavior:'smooth',block:'nearest'});
   setTimeout(()=>{const n=document.getElementById('n-'+tid);if(n)n.focus();},80);
@@ -371,98 +461,97 @@ function addRow(){
 // ── SINGER POPUP ──────────────────────────────────
 function openPop(rowId, anchor){
   if(popTarget===rowId){closePop();return;}
-  popTarget=rowId;
-  const pop=document.getElementById('spop');
-  const grid=document.getElementById('spop-grid');
-  grid.innerHTML='';
-  const sel=editState[rowId]?.singers||[];
+  popTarget = rowId;
+  const pop  = document.getElementById('spop');
+  const grid = document.getElementById('spop-grid');
+  grid.innerHTML = '';
+  const sel = editState[rowId]?.singers||[];
   COUSINS.forEach(name=>{
-    const b=document.createElement('button');
-    b.className='sc'+(sel.includes(name)?' on':'');
-    b.textContent=name;
-    b.onclick=e=>{e.stopPropagation();toggleSinger(rowId,name,b);};
+    const b = document.createElement('button');
+    b.className = 'sc'+(sel.includes(name)?' on':'');
+    b.textContent = name;
+    b.onclick = e=>{e.stopPropagation(); toggleSinger(rowId,name,b);};
     grid.appendChild(b);
   });
-  pop.style.display='block';
-  // Position
-  const rect=anchor.getBoundingClientRect();
-  const pw=200, ph=210;
-  let top=rect.bottom+4, left=rect.left;
-  if(top+ph>window.innerHeight) top=rect.top-ph-4;
-  if(left+pw>window.innerWidth) left=window.innerWidth-pw-8;
+  pop.style.display = 'block';
+  const rect = anchor.getBoundingClientRect();
+  const pw=210, ph=220;
+  let top  = rect.bottom+4, left = rect.left;
+  if(top+ph>window.innerHeight) top = rect.top-ph-4;
+  if(left+pw>window.innerWidth) left = window.innerWidth-pw-8;
+  if(left<4) left=4;
   pop.style.top=top+'px'; pop.style.left=left+'px'; pop.style.width=pw+'px';
 }
 
 function toggleSinger(rowId,name,chip){
   if(!editState[rowId]) return;
-  const arr=editState[rowId].singers;
+  const arr = editState[rowId].singers;
   if(arr.includes(name)){ editState[rowId].singers=arr.filter(s=>s!==name); chip.classList.remove('on'); }
   else{ arr.push(name); chip.classList.add('on'); }
-  // update cell inline
-  const cell=document.getElementById('sc-'+rowId);
+  const cell = document.getElementById('sc-'+rowId);
   if(cell){
-    const s=editState[rowId].singers;
-    cell.innerHTML=s.length?s.map(n=>`<span class="stag">${x(n)}</span>`).join(''):'<span class="no-val">Tap to pick</span>';
-    cell.onclick=e=>{e.stopPropagation();openPop(rowId,cell);};
+    const s = editState[rowId].singers;
+    cell.innerHTML = s.length
+      ? s.map(n=>`<span class="stag">${x(n)}</span>`).join('')
+      : '<span class="no-val">Tap to pick</span>';
+    cell.onclick = e=>{e.stopPropagation(); openPop(rowId,cell);};
   }
 }
 
 function closePop(){
-  popTarget=null;
-  document.getElementById('spop').style.display='none';
+  popTarget = null;
+  document.getElementById('spop').style.display = 'none';
 }
-
 document.addEventListener('click',e=>{
-  if(!e.target.closest('#spop')&&!e.target.id.startsWith('sc-')&&!e.target.closest('[id^="sc-"]')) closePop();
+  if(!e.target.closest('#spop')&&!e.target.closest('[id^="sc-"]')) closePop();
 });
 
 // ── KEYBOARD ──────────────────────────────────────
 document.addEventListener('keydown',e=>{
-  const ids=Object.keys(editState);
+  const ids = Object.keys(editState);
   if(!ids.length) return;
-  const id=ids[ids.length-1];
-  if(e.key==='Enter'){e.preventDefault();saveRow(id);}
-  if(e.key==='Escape'){cancelRow(id);}
+  const id = ids[ids.length-1];
+  if(e.key==='Enter'){e.preventDefault(); saveRow(id);}
+  if(e.key==='Escape') cancelRow(id);
 });
 
 // ── DRAG & DROP ───────────────────────────────────
 function bindDrag(){
   document.querySelectorAll('.row:not(.editing)').forEach(row=>{
-    row.ondragstart=e=>{dragSrcId=row.dataset.id;row.classList.add('dragging');e.dataTransfer.effectAllowed='move';};
-    row.ondragover=e=>{e.preventDefault();document.querySelectorAll('.row').forEach(r=>r.classList.remove('drag-over'));row.classList.add('drag-over');};
-    row.ondrop=e=>{e.preventDefault();doReorder(dragSrcId,row.dataset.id);};
-    row.ondragend=()=>{document.querySelectorAll('.row').forEach(r=>r.classList.remove('dragging','drag-over'));dragSrcId=null;};
-    // Touch drag via ⠿ handle
-    const h=row.querySelector('.c-num');
-    if(h){ h.ontouchstart=e=>{e.preventDefault();startTouch(e,row);}; }
+    row.ondragstart = e=>{dragSrcId=row.dataset.id; row.classList.add('dragging'); e.dataTransfer.effectAllowed='move';};
+    row.ondragover  = e=>{e.preventDefault(); document.querySelectorAll('.row').forEach(r=>r.classList.remove('drag-over')); row.classList.add('drag-over');};
+    row.ondrop      = e=>{e.preventDefault(); doReorder(dragSrcId,row.dataset.id);};
+    row.ondragend   = ()=>{document.querySelectorAll('.row').forEach(r=>r.classList.remove('dragging','drag-over')); dragSrcId=null;};
+    const h = row.querySelector('.c-num');
+    if(h) h.ontouchstart = e=>{e.preventDefault(); startTouch(e,row);};
   });
 }
 
 function startTouch(e,row){
-  touchSrcId=row.dataset.id;
-  const rect=row.getBoundingClientRect();
-  touchClone=row.cloneNode(true);
+  touchSrcId = row.dataset.id;
+  const rect = row.getBoundingClientRect();
+  touchClone = row.cloneNode(true);
   touchClone.style.cssText=`position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;
-    opacity:.7;z-index:999;pointer-events:none;border-color:var(--teal);`;
+    opacity:.7;z-index:999;pointer-events:none;border-color:var(--teal);box-shadow:0 6px 24px rgba(0,0,0,.6);`;
   document.body.appendChild(touchClone);
   row.classList.add('dragging');
-  document.ontouchmove=ev=>{
+  document.ontouchmove = ev=>{
     ev.preventDefault();
-    const t=ev.touches[0];
+    const t = ev.touches[0];
     touchClone.style.top=(t.clientY-rect.height/2)+'px';
     touchClone.style.display='none';
-    const under=document.elementFromPoint(t.clientX,t.clientY);
+    const under = document.elementFromPoint(t.clientX,t.clientY);
     touchClone.style.display='';
     document.querySelectorAll('.row').forEach(r=>r.classList.remove('drag-over'));
-    const ov=under?.closest('.row');
+    const ov = under?.closest('.row');
     if(ov&&ov.dataset.id!==touchSrcId) ov.classList.add('drag-over');
   };
-  document.ontouchend=ev=>{
-    const t=ev.changedTouches[0];
-    if(touchClone){touchClone.remove();touchClone=null;}
+  document.ontouchend = ev=>{
+    const t = ev.changedTouches[0];
+    if(touchClone){touchClone.remove(); touchClone=null;}
     document.querySelectorAll('.row').forEach(r=>r.classList.remove('dragging','drag-over'));
-    const under=document.elementFromPoint(t.clientX,t.clientY);
-    const ov=under?.closest('.row');
+    const under = document.elementFromPoint(t.clientX,t.clientY);
+    const ov = under?.closest('.row');
     if(ov&&ov.dataset.id!==touchSrcId) doReorder(touchSrcId,ov.dataset.id);
     touchSrcId=null; document.ontouchmove=null; document.ontouchend=null;
   };
@@ -470,26 +559,119 @@ function startTouch(e,row){
 
 async function doReorder(srcId,dstId){
   if(!srcId||!dstId||srcId===dstId) return;
-  const si=songs.findIndex(s=>s.id===srcId);
-  const di=songs.findIndex(s=>s.id===dstId);
+  const si = songs.findIndex(s=>s.id===srcId);
+  const di = songs.findIndex(s=>s.id===dstId);
   if(si<0||di<0) return;
-  const [mv]=songs.splice(si,1); songs.splice(di,0,mv);
+  const [mv] = songs.splice(si,1); songs.splice(di,0,mv);
   songs.forEach((s,i)=>s.sort_order=i);
   render();
   for(const s of songs) await db.from(TABLE).update({sort_order:s.sort_order}).eq('id',s.id);
 }
 
+// ── EXPORT ───────────────────────────────────────
+function openExport(){ document.getElementById('exp-overlay').classList.add('open'); }
+function closeExport(){ document.getElementById('exp-overlay').classList.remove('open'); }
+function handleOverlayClick(e){ if(e.target===document.getElementById('exp-overlay')) closeExport(); }
+
+function buildWorkbook(){
+  const rows = songs.map((s,i)=>({
+    '#': i+1,
+    'Song Name': s.name||'',
+    'Singer(s)': (s.singers||[]).join(', '),
+    'Karaoke Link': s.karaoke_link||''
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  // Column widths
+  ws['!cols'] = [{wch:4},{wch:36},{wch:30},{wch:50}];
+  // Style header row bold (xlsx-style not available in free version, skip)
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Setlist');
+  return wb;
+}
+
+function exportExcel(){
+  closeExport();
+  if(!songs.length){ toast('No songs to export','err'); return; }
+  try{
+    const wb = buildWorkbook();
+    XLSX.writeFile(wb, FILE_NAME);
+    toast('Downloaded '+FILE_NAME+' ✓','ok');
+  } catch(e){
+    toast('Export failed: '+e.message,'err');
+  }
+}
+
+// Google Drive upload using OAuth2 implicit flow + Drive API
+async function exportToDrive(){
+  closeExport();
+  if(!songs.length){ toast('No songs to export','err'); return; }
+
+  // If no GAPI credentials set, fall back to download + instruction
+  if(!GAPI_CLIENT_ID || !GAPI_API_KEY){
+    toast('Downloading file — then upload to Drive manually','inf');
+    setTimeout(exportExcel, 600);
+    return;
+  }
+
+  toast('Signing in to Google…','inf');
+  try{
+    // Load gapi
+    await loadScript('https://apis.google.com/js/api.js');
+    await new Promise(res=>gapi.load('client:auth2',res));
+    await gapi.client.init({apiKey:GAPI_API_KEY, clientId:GAPI_CLIENT_ID,
+      scope:'https://www.googleapis.com/auth/drive.file', discoveryDocs:[]});
+
+    const authInst = gapi.auth2.getAuthInstance();
+    if(!authInst.isSignedIn.get()) await authInst.signIn();
+
+    const token = gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse().access_token;
+    toast('Uploading to Drive…','inf');
+
+    // Build xlsx as array buffer
+    const wb  = buildWorkbook();
+    const buf = XLSX.write(wb, {type:'array', bookType:'xlsx'});
+    const blob = new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+
+    // Multipart upload
+    const meta = JSON.stringify({name:FILE_NAME, mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const form = new FormData();
+    form.append('metadata', new Blob([meta],{type:'application/json'}));
+    form.append('file', blob);
+
+    const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',{
+      method:'POST',
+      headers:{Authorization:'Bearer '+token},
+      body:form
+    });
+    if(!res.ok) throw new Error('Drive upload failed: '+res.status);
+    const data = await res.json();
+    toast('Uploaded to Drive ✓ — "'+data.name+'"','ok');
+  } catch(err){
+    toast('Drive error: '+err.message,'err');
+    console.error(err);
+  }
+}
+
+function loadScript(src){
+  return new Promise((res,rej)=>{
+    if(document.querySelector(`script[src="${src}"]`)){res();return;}
+    const s=document.createElement('script');
+    s.src=src; s.onload=res; s.onerror=rej;
+    document.head.appendChild(s);
+  });
+}
+
 // ── UTILS ─────────────────────────────────────────
-function x(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function x(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 let _st;
 function toast(msg,type){
-  const el=document.getElementById('status');
+  const el = document.getElementById('status');
   el.textContent=msg; el.className='show '+type;
-  clearTimeout(_st); _st=setTimeout(()=>{el.className='';el.textContent='';},2600);
+  clearTimeout(_st); _st=setTimeout(()=>{el.className='';el.textContent='';},3000);
 }
 function setFdb(s){
-  const el=document.getElementById('fdb');
-  el.textContent=s==='ok'?'● connected · supabase':s==='err'?'● error':'● connecting…';
+  const el = document.getElementById('fdb');
+  el.textContent = s==='ok'?'● connected · supabase':s==='err'?'● error':'● connecting…';
 }
 
 init();
