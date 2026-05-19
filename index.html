@@ -3,760 +3,944 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>🎤 Stage Show — Song List</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<title>🎤 Our Stage Show Setlist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root {
-  --primary: #7C3AED;
-  --primary-mid: #A78BFA;
-  --primary-dark: #6D28D9;
-  --accent: #F59E0B;
-  --bg: #0F0A1E;
-  --surface: #1A1030;
-  --surface2: #241840;
-  --border: rgba(167,139,250,0.18);
-  --text: #F3F0FF;
-  --text-muted: #9D8FC4;
-  --danger: #EF4444;
-  --success: #10B981;
-  --tag-bg: #2D1F5E;
-  --tag-text: #C4B5FD;
-  --radius: 12px;
-  --radius-sm: 8px;
-  --green: #059669;
-}
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;overscroll-behavior:none;}
+  :root {
+    --bg: #0d0d14;
+    --surface: #16161f;
+    --surface2: #1e1e2a;
+    --border: #2a2a3a;
+    --gold: #f0c060;
+    --gold2: #e0a030;
+    --rose: #f06080;
+    --teal: #40c8b0;
+    --text: #e8e8f0;
+    --muted: #7070a0;
+    --radius: 14px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.5);
+  }
 
-.header{background:linear-gradient(135deg,#1A0A3E 0%,#2D1060 50%,#1A0A3E 100%);border-bottom:1px solid var(--border);padding:16px 16px 12px;position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:12px;}
-.header-logo{font-size:26px;line-height:1;}
-.header-info{flex:1;}
-.header-title{font-size:18px;font-weight:700;color:#F3F0FF;letter-spacing:-0.3px;}
-.header-sub{font-size:11px;color:var(--text-muted);margin-top:2px;}
-.live-dot{width:7px;height:7px;background:var(--success);border-radius:50%;display:inline-block;margin-right:4px;animation:pulse 2s infinite;}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.35}}
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
-.sync-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:5px 16px;font-size:11px;color:var(--text-muted);display:flex;align-items:center;justify-content:space-between;}
-.sync-bar a{color:var(--primary-mid);text-decoration:none;font-size:11px;}
-.syncing{color:var(--accent);}
-.sync-err{color:var(--danger);}
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 80px;
+  }
 
-.toolbar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
-.btn{display:inline-flex;align-items:center;gap:5px;padding:8px 13px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:transparent;color:var(--text);font-size:13px;font-weight:500;cursor:pointer;transition:all .18s;white-space:nowrap;font-family:inherit;}
-.btn:hover{background:var(--surface2);border-color:var(--primary-mid);}
-.btn:active{transform:scale(.97);}
-.btn-primary{background:var(--primary);border-color:var(--primary);color:#fff;}
-.btn-primary:hover{background:var(--primary-dark);}
-.btn-sort{border-color:rgba(167,139,250,.35);}
-.btn-sort.active{background:var(--surface2);border-color:var(--primary-mid);color:var(--primary-mid);}
-.count-badge{background:var(--primary);color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:auto;}
+  /* Background decoration */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -200px; right: -200px;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(240,192,96,0.07) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    bottom: -200px; left: -200px;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(240,96,128,0.06) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
 
-.drag-hint{text-align:center;font-size:11px;color:var(--text-muted);padding:7px 0 3px;opacity:.7;}
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(13,13,20,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px 12px;
+  }
 
-.list-container{padding:8px 16px 100px;}
-.empty-state{text-align:center;padding:60px 20px;color:var(--text-muted);}
-.empty-state .emoji{font-size:48px;margin-bottom:12px;}
-.empty-state p{font-size:14px;line-height:1.7;}
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
 
-.song-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:9px;overflow:hidden;transition:border-color .18s,transform .12s;user-select:none;}
-.song-card:hover{border-color:rgba(167,139,250,.4);}
-.song-card.dragging{opacity:.45;border-color:var(--primary-mid);}
-.song-card.drag-over{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent);transform:scale(1.015);}
-.song-card-header{display:flex;align-items:flex-start;padding:12px 12px 8px;gap:9px;}
-.drag-handle{display:flex;flex-direction:column;justify-content:center;gap:3px;padding:5px 3px;cursor:grab;flex-shrink:0;margin-top:2px;opacity:.4;transition:opacity .15s;}
-.drag-handle:hover{opacity:.9;}
-.drag-handle span{display:block;width:15px;height:2px;background:var(--text-muted);border-radius:1px;}
-.song-num{background:var(--tag-bg);color:var(--tag-text);font-size:11px;font-weight:700;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}
-.song-info{flex:1;min-width:0;}
-.song-name{font-size:15px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.song-singers{margin-top:5px;display:flex;flex-wrap:wrap;gap:4px;}
-.singer-tag{background:var(--tag-bg);color:var(--tag-text);font-size:11px;padding:2px 8px;border-radius:20px;white-space:nowrap;}
-.singer-tag.primary{background:#4C1D95;color:#DDD6FE;}
-.song-actions{display:flex;gap:5px;flex-shrink:0;}
-.icon-btn{width:32px;height:32px;border-radius:var(--radius-sm);border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;font-family:inherit;}
-.icon-btn:hover{background:var(--surface2);color:var(--text);}
-.icon-btn.danger:hover{color:var(--danger);border-color:var(--danger);}
-.icon-btn.edit-btn:hover{color:var(--primary-mid);border-color:var(--primary-mid);}
-.karaoke-row{padding:0 12px 10px 70px;}
-.karaoke-link{font-size:12px;color:var(--accent);text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
-.karaoke-link:hover{color:#FCD34D;}
-.no-link{font-size:12px;color:var(--text-muted);}
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--gold), var(--rose));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
+  }
 
-/* ── Modals shared ── */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:200;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .22s;}
-.modal-overlay.open{opacity:1;pointer-events:all;}
-.modal{background:var(--surface);border-radius:var(--radius) var(--radius) 0 0;border:1px solid var(--border);border-bottom:none;padding:18px 16px 38px;width:100%;max-height:93vh;overflow-y:auto;transform:translateY(60px);transition:transform .25s cubic-bezier(.16,1,.3,1);}
-.modal-overlay.open .modal{transform:translateY(0);}
-.modal-handle{width:36px;height:4px;background:rgba(167,139,250,.3);border-radius:2px;margin:0 auto 16px;}
-.modal-title{font-size:17px;font-weight:700;margin-bottom:14px;color:var(--text);}
-.form-group{margin-bottom:14px;}
-.form-label{font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;display:block;}
-.form-input{width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:15px;padding:10px 12px;outline:none;font-family:inherit;transition:border-color .15s;}
-.form-input:focus{border-color:var(--primary-mid);}
-.form-input::placeholder{color:var(--text-muted);}
-.singer-section-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;}
-.singers-hint{font-size:11px;color:var(--primary-mid);}
-.selected-preview{display:flex;flex-wrap:wrap;gap:5px;min-height:26px;margin-bottom:9px;align-items:center;}
-.sel-chip{background:var(--primary);color:#fff;font-size:12px;padding:3px 10px;border-radius:20px;}
-.cousins-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
-.cousin-btn{padding:10px 6px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--surface2);color:var(--text-muted);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;text-align:center;font-family:inherit;}
-.cousin-btn.selected{border-color:var(--primary);background:var(--primary);color:#fff;}
-.cousin-btn:hover:not(.selected){border-color:var(--primary-mid);color:var(--text);}
-.form-row{display:flex;gap:8px;margin-top:16px;}
-.form-row .btn{flex:1;justify-content:center;}
+  .song-count {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 500;
+  }
 
-/* ── Export modal ── */
-.export-option{display:flex;align-items:center;gap:14px;padding:16px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--surface2);cursor:pointer;margin-bottom:10px;transition:border-color .18s;}
-.export-option:hover{border-color:var(--primary-mid);}
-.export-option:active{transform:scale(.98);}
-.export-icon{font-size:28px;flex-shrink:0;}
-.export-label{flex:1;}
-.export-label strong{display:block;font-size:14px;color:var(--text);margin-bottom:2px;}
-.export-label span{font-size:12px;color:var(--text-muted);}
-.export-option.drive{border-color:rgba(52,168,83,.35);}
-.export-option.drive:hover{border-color:#34A853;}
+  .subtitle {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
 
-/* ── Setup banner ── */
-.setup-banner{background:linear-gradient(90deg,#1e1040,#2d1060);border:1px solid rgba(167,139,250,.3);border-radius:var(--radius-sm);padding:12px 14px;margin:10px 16px 0;font-size:12px;line-height:1.6;color:var(--text-muted);}
-.setup-banner strong{color:var(--primary-mid);}
-.setup-banner code{background:#0a0618;padding:1px 5px;border-radius:3px;color:#c4b5fd;font-size:11px;}
-.setup-banner a{color:var(--accent);text-decoration:none;}
+  /* Status bar */
+  #status-bar {
+    display: none;
+    padding: 8px 20px;
+    font-size: 12px;
+    text-align: center;
+    font-weight: 500;
+  }
+  #status-bar.error { background: rgba(240,96,128,0.15); color: var(--rose); display: block; }
+  #status-bar.success { background: rgba(64,200,176,0.15); color: var(--teal); display: block; }
+  #status-bar.info { background: rgba(240,192,96,0.1); color: var(--gold); display: block; }
 
-/* ── Toast ── */
-.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--success);color:#fff;font-size:13px;font-weight:600;padding:10px 22px;border-radius:30px;z-index:400;opacity:0;transition:all .3s;white-space:nowrap;pointer-events:none;}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-.toast.err{background:var(--danger);}
+  main {
+    position: relative;
+    z-index: 1;
+    padding: 16px;
+    max-width: 680px;
+    margin: 0 auto;
+  }
 
-/* ── Sort indicator ── */
-.sort-badge{font-size:10px;background:var(--primary);color:#fff;padding:1px 6px;border-radius:10px;margin-left:4px;}
+  /* Add Song FAB */
+  .fab {
+    position: fixed;
+    bottom: 24px;
+    right: 20px;
+    z-index: 200;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold), var(--rose));
+    border: none;
+    color: #0d0d14;
+    font-size: 26px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 6px 24px rgba(240,192,96,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+    line-height: 1;
+  }
+  .fab:active { transform: scale(0.93); }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(4px);
+    z-index: 300;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+  }
+  .modal-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .modal {
+    background: var(--surface);
+    border-radius: 24px 24px 0 0;
+    padding: 24px 20px 40px;
+    width: 100%;
+    max-width: 680px;
+    max-height: 90vh;
+    overflow-y: auto;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    border-top: 1px solid var(--border);
+  }
+  .modal-overlay.open .modal {
+    transform: translateY(0);
+  }
+
+  .modal-handle {
+    width: 40px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 auto 20px;
+  }
+
+  .modal-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--gold);
+    margin-bottom: 20px;
+  }
+
+  label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 7px;
+    margin-top: 16px;
+  }
+  label:first-of-type { margin-top: 0; }
+
+  input[type="text"], input[type="url"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+  input:focus { border-color: var(--gold); }
+
+  /* Singer chips */
+  .singer-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .singer-chip {
+    padding: 10px 8px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .singer-chip.selected {
+    border-color: var(--gold);
+    background: rgba(240,192,96,0.12);
+    color: var(--gold);
+    font-weight: 600;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 24px;
+  }
+
+  .btn {
+    flex: 1;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn:active { transform: scale(0.97); }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--gold), var(--gold2));
+    color: #0d0d14;
+  }
+
+  .btn-ghost {
+    background: var(--surface2);
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+
+  /* Song List */
+  .list-header {
+    display: grid;
+    grid-template-columns: 32px 1fr 1fr auto;
+    gap: 8px;
+    padding: 0 8px 8px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+
+  .col-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+  }
+
+  .song-list {
+    list-style: none;
+  }
+
+  .song-card {
+    display: grid;
+    grid-template-columns: 32px 1fr auto;
+    gap: 8px;
+    align-items: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 10px;
+    margin-bottom: 8px;
+    cursor: grab;
+    transition: all 0.2s;
+    position: relative;
+    touch-action: none;
+  }
+  .song-card:active { cursor: grabbing; }
+  .song-card.dragging {
+    opacity: 0.4;
+    border-color: var(--gold);
+    transform: scale(0.98);
+  }
+  .song-card.drag-over {
+    border-color: var(--teal);
+    background: rgba(64,200,176,0.05);
+  }
+
+  .song-num {
+    font-size: 18px;
+    font-weight: 900;
+    font-family: 'Playfair Display', serif;
+    color: var(--border);
+    text-align: center;
+    line-height: 1;
+  }
+  .song-card:hover .song-num { color: var(--gold); }
+
+  .song-info { min-width: 0; }
+
+  .song-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 3px;
+  }
+
+  .song-singers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+
+  .singer-tag {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 20px;
+    background: rgba(240,192,96,0.1);
+    color: var(--gold);
+    letter-spacing: 0.3px;
+  }
+
+  .karaoke-link {
+    font-size: 11px;
+    color: var(--teal);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+  }
+  .karaoke-link:hover { text-decoration: underline; }
+
+  .song-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .icon-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .icon-btn:active { transform: scale(0.9); }
+  .icon-btn.edit:hover { border-color: var(--gold); color: var(--gold); }
+  .icon-btn.delete:hover { border-color: var(--rose); color: var(--rose); }
+
+  .drag-handle {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 16px;
+    cursor: grab;
+    touch-action: none;
+  }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+  }
+  .empty-icon { font-size: 52px; margin-bottom: 14px; opacity: 0.6; }
+  .empty-text { font-size: 17px; font-weight: 500; margin-bottom: 6px; color: var(--text); }
+  .empty-sub { font-size: 13px; }
+
+  /* Loading */
+  .loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .spinner {
+    width: 28px; height: 28px;
+    border: 2px solid var(--border);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Setup screen */
+  #setup-screen {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    background: var(--bg);
+    padding: 40px 24px;
+    overflow-y: auto;
+  }
+  #setup-screen.visible { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+  .setup-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 28px 24px;
+    width: 100%;
+    max-width: 440px;
+  }
+
+  .setup-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--gold), var(--rose));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 6px;
+  }
+
+  .setup-sub {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 24px;
+    line-height: 1.5;
+  }
+
+  .config-notice {
+    background: rgba(240,192,96,0.08);
+    border: 1px solid rgba(240,192,96,0.2);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 12px;
+    color: var(--gold);
+    margin-top: 16px;
+    line-height: 1.5;
+  }
+
+  @media (min-width: 600px) {
+    .song-card {
+      grid-template-columns: 36px 1fr 1fr auto;
+    }
+    .singer-grid {
+      grid-template-columns: repeat(6, 1fr);
+    }
+  }
 </style>
 </head>
 <body>
 
-<div class="header">
-  <div class="header-logo">🎤</div>
-  <div class="header-info">
-    <div class="header-title">Stage Show 2025</div>
-    <div class="header-sub"><span class="live-dot"></span>All cousins can view &amp; edit</div>
+<!-- Config screen shown if Supabase not configured -->
+<div id="setup-screen">
+  <div class="setup-card">
+    <div class="setup-title">🎤 Stage Show</div>
+    <p class="setup-sub">Configure your Supabase connection to get started. This only needs to be done once in the code.</p>
+    <label>Supabase URL</label>
+    <input type="text" id="cfg-url" placeholder="https://xxxx.supabase.co" />
+    <label>Supabase Anon Key</label>
+    <input type="text" id="cfg-key" placeholder="eyJ..." />
+    <div class="modal-actions" style="margin-top:20px">
+      <button class="btn btn-primary" onclick="saveConfig()">Save & Connect</button>
+    </div>
+    <div class="config-notice">
+      💡 After saving, update the <code>SUPABASE_URL</code> and <code>SUPABASE_KEY</code> constants in the HTML source for automatic connection on all devices.
+    </div>
   </div>
 </div>
 
-<div class="sync-bar">
-  <span id="syncStatus">Loading…</span>
-  <a href="#" onclick="openSetup();return false;" id="setupLink" style="display:none;">⚙️ Connect Google Drive</a>
-</div>
+<header>
+  <div class="header-top">
+    <h1>🎤 Stage Show</h1>
+    <span class="song-count" id="song-count">0 songs</span>
+  </div>
+  <div class="subtitle">Cousins' Setlist Manager</div>
+</header>
 
-<div id="setupBannerWrap"></div>
+<div id="status-bar"></div>
 
-<div class="toolbar">
-  <button class="btn btn-primary" onclick="openAddModal()">➕ Add Song</button>
-  <button class="btn" id="btnExport" onclick="openExportModal()">📊 Export</button>
-  <button class="btn btn-sort" id="btnSort" onclick="toggleSort()" title="Sort by first singer name">🔤 Sort by Singer</button>
-  <span class="count-badge" id="countBadge">0 songs</span>
-</div>
+<main>
+  <div id="list-container">
+    <div class="loading"><div class="spinner"></div>Connecting…</div>
+  </div>
+</main>
 
-<div class="list-container">
-  <div class="drag-hint" id="dragHint" style="display:none;">☰ Hold &amp; drag to reorder · Sort mode locks order</div>
-  <div id="songList"></div>
-</div>
+<button class="fab" onclick="openModal()" title="Add Song">+</button>
 
 <!-- Add/Edit Modal -->
-<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
-  <div class="modal" onclick="event.stopPropagation()">
+<div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
+  <div class="modal" id="modal">
     <div class="modal-handle"></div>
-    <div class="modal-title" id="modalTitle">Add Song</div>
-    <div class="form-group">
-      <label class="form-label">Song Name *</label>
-      <input class="form-input" id="inpSongName" placeholder="e.g. Kesariya" autocomplete="off"/>
+    <div class="modal-title" id="modal-title">Add New Song</div>
+
+    <label>Song Name *</label>
+    <input type="text" id="inp-name" placeholder="e.g. Tum Hi Ho" />
+
+    <label>Singer(s) *</label>
+    <div class="singer-grid" id="singer-grid">
+      <!-- chips injected by JS -->
     </div>
-    <div class="form-group">
-      <div class="singer-section-top">
-        <label class="form-label" style="margin-bottom:0;">Singers</label>
-        <span class="singers-hint">Tap multiple for duets / group songs</span>
-      </div>
-      <div class="selected-preview" id="selectedPreview"></div>
-      <div class="cousins-grid" id="cousinsGrid"></div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Karaoke Link (optional)</label>
-      <input class="form-input" id="inpKaraoke" placeholder="https://youtube.com/..." autocomplete="off"/>
-    </div>
-    <div class="form-row">
-      <button class="btn" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveSong()">💾 Save</button>
+
+    <label>Karaoke / YouTube Link</label>
+    <input type="url" id="inp-link" placeholder="https://youtube.com/..." />
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSong()">Save Song</button>
     </div>
   </div>
 </div>
-
-<!-- Export Modal -->
-<div class="modal-overlay" id="exportOverlay" onclick="if(event.target===this)closeExportModal()">
-  <div class="modal" onclick="event.stopPropagation()" style="max-height:60vh;">
-    <div class="modal-handle"></div>
-    <div class="modal-title">Export Setlist</div>
-    <div class="export-option drive" onclick="exportToDrive()">
-      <div class="export-icon">🟢</div>
-      <div class="export-label">
-        <strong>Save to Google Drive</strong>
-        <span>Creates / updates <code>StageShow_Setlist.xlsx</code> in your Drive root via Apps Script</span>
-      </div>
-    </div>
-    <div class="export-option" onclick="exportLocal()">
-      <div class="export-icon">💾</div>
-      <div class="export-label">
-        <strong>Download to device</strong>
-        <span>Saves the Excel file directly to your phone or computer</span>
-      </div>
-    </div>
-    <div class="form-row" style="margin-top:8px;">
-      <button class="btn" onclick="closeExportModal()">Cancel</button>
-    </div>
-  </div>
-</div>
-
-<!-- Setup Modal -->
-<div class="modal-overlay" id="setupOverlay" onclick="if(event.target===this)closeSetup()">
-  <div class="modal" onclick="event.stopPropagation()" style="max-height:90vh;">
-    <div class="modal-handle"></div>
-    <div class="modal-title">⚙️ Connect Google Drive & Sync</div>
-    <p style="font-size:13px;color:var(--text-muted);line-height:1.7;margin-bottom:14px;">
-      This app uses a free <strong style="color:var(--primary-mid);">Google Apps Script</strong> as its backend —
-      no cost, no third-party services, fully under your Google account.
-      It stores all song data in a JSON file on your Drive and also writes the Excel export there.
-    </p>
-
-    <div class="form-group">
-      <label class="form-label">Step 1 — Deploy your Apps Script</label>
-      <p style="font-size:12px;color:var(--text-muted);line-height:1.6;">
-        Open <a href="https://script.google.com" target="_blank" style="color:var(--accent);">script.google.com</a>,
-        create a new project, paste the script below, click <em>Deploy → New deployment → Web app</em>,
-        set <em>Execute as: Me</em> and <em>Who has access: Anyone</em>, then copy the Web App URL.
-      </p>
-      <div style="background:#0a0618;border-radius:var(--radius-sm);padding:12px;margin-top:8px;overflow-x:auto;">
-        <pre id="scriptCode" style="font-size:10.5px;color:#c4b5fd;white-space:pre;font-family:monospace;line-height:1.5;"></pre>
-      </div>
-      <button class="btn" style="margin-top:8px;font-size:12px;" onclick="copyScript()">📋 Copy Script</button>
-    </div>
-
-    <div class="form-group">
-      <label class="form-label">Step 2 — Paste your Web App URL here</label>
-      <input class="form-input" id="inpScriptUrl" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off"/>
-    </div>
-    <div class="form-row">
-      <button class="btn" onclick="closeSetup()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveScriptUrl()">✅ Connect</button>
-    </div>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
 
 <script>
-// ════════════════════════════════════════
-//  CONFIG
-// ════════════════════════════════════════
-const COUSINS    = ['Ravi','Soujanya','Soumya','Sravan','Saradhi','Harini'];
-const LS_DATA    = 'stage_songs_data_v2';   // localStorage key for song data
-const LS_URL     = 'stage_script_url';      // localStorage key for Apps Script URL
+// =============================================
+//  CONFIGURE SUPABASE HERE
+//  Replace these with your actual values
+// =============================================
+const SUPABASE_URL = 'https://cahvshxueqvixsgtucqb.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_hAS0dxhq4DtgmU-NjSi1RA_XSHGm2CX';
+// =============================================
 
-// ════════════════════════════════════════
-//  STATE
-// ════════════════════════════════════════
-let songs          = [];
-let editingId      = null;
-let selectedSingers= [];
-let sortMode       = false;   // true = sorted by first singer A-Z
-let scriptUrl      = '';
+const COUSINS = ['Ravi', 'Soujanya', 'Soumya', 'Sravan', 'Saradhi', 'Harini'];
+const TABLE = 'setlist_songs';
+
+let supabase_client = null;
+let songs = [];
+let editingId = null;
+let selectedSingers = [];
 
 // Drag state
-let dragSrcIdx = null, dragOverIdx = null;
-let touchSrcIdx = null, touchClone = null;
+let dragSrc = null;
+let touchDragEl = null;
+let touchClone = null;
+let touchDragIndex = null;
 
-// ════════════════════════════════════════
-//  UTILS
-// ════════════════════════════════════════
-const uid  = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
-const esc  = s  => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+// ---- INIT ----
+async function init() {
+  const url = SUPABASE_URL !== 'YOUR_SUPABASE_URL' ? SUPABASE_URL : localStorage.getItem('sb_url');
+  const key = SUPABASE_KEY !== 'YOUR_SUPABASE_ANON_KEY' ? SUPABASE_KEY : localStorage.getItem('sb_key');
 
-function setSyncStatus(msg, cls='') {
-  const el = document.getElementById('syncStatus');
-  el.textContent = msg; el.className = cls;
-}
-
-// ════════════════════════════════════════
-//  APPS SCRIPT TEMPLATE (shown in setup)
-// ════════════════════════════════════════
-const APPS_SCRIPT = `const FILE_NAME = 'StageShow_Songs.json';
-const XLS_NAME  = 'StageShow_Setlist.xlsx';
-
-function doGet(e) {
-  const action = e.parameter.action || 'read';
-  if (action === 'read')  return read();
-  if (action === 'write') return write(e.parameter.data);
-  if (action === 'exportXls') return exportXls(e.parameter.data);
-  return json({error:'unknown action'});
-}
-
-function read() {
-  const file = getFile(FILE_NAME);
-  const data = file ? file.getBlob().getDataAsString() : '[]';
-  return json({songs: JSON.parse(data)});
-}
-
-function write(dataStr) {
-  const file = getFile(FILE_NAME);
-  if (file) file.setContent(dataStr);
-  else DriveApp.createFile(FILE_NAME, dataStr, MimeType.PLAIN_TEXT);
-  return json({ok: true});
-}
-
-function exportXls(dataStr) {
-  const songs = JSON.parse(dataStr);
-  const ss = SpreadsheetApp.create(XLS_NAME + '_tmp');
-  const sh = ss.getActiveSheet();
-  sh.setName('Setlist');
-  sh.appendRow(['#','Song Name','Singers','Karaoke Link','Added']);
-  songs.forEach((s,i)=>{
-    sh.appendRow([
-      i+1, s.name,
-      (s.singers||[]).join(', '),
-      s.karaoke||'',
-      s.addedAt ? new Date(s.addedAt).toLocaleDateString('en-IN') : ''
-    ]);
-  });
-  sh.getRange(1,1,1,5).setFontWeight('bold')
-    .setBackground('#7C3AED').setFontColor('#ffffff');
-  sh.setFrozenRows(1);
-  const id = ss.getId();
-  const xlsx = Drive.Files.export(id,
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  DriveApp.getFileById(id).setTrashed(true);
-  const old = getFile(XLS_NAME);
-  if (old) old.setTrashed(true);
-  DriveApp.createFile(XLS_NAME, xlsx);
-  return json({ok:true, file: XLS_NAME});
-}
-
-function getFile(name) {
-  const files = DriveApp.getFilesByName(name);
-  return files.hasNext() ? files.next() : null;
-}
-
-function json(obj) {
-  return ContentService
-    .createTextOutput(JSON.stringify(obj))
-    .setMimeType(ContentService.MimeType.JSON);
-}`;
-
-// ════════════════════════════════════════
-//  STORAGE  (Apps Script + localStorage fallback)
-// ════════════════════════════════════════
-async function loadSongs() {
-  scriptUrl = localStorage.getItem(LS_URL) || '';
-  updateSetupLink();
-
-  if (scriptUrl) {
-    setSyncStatus('Syncing with Google Drive…', 'syncing');
-    try {
-      const r = await fetch(`${scriptUrl}?action=read`);
-      const j = await r.json();
-      if (j.songs) {
-        songs = j.songs;
-        localStorage.setItem(LS_DATA, JSON.stringify(songs));
-        setSyncStatus('✓ Synced with Google Drive', '');
-        renderSongs(); return;
-      }
-    } catch(e) {
-      setSyncStatus('⚠ Drive sync failed — showing local data', 'sync-err');
-    }
-  } else {
-    setSyncStatus('📱 Local only — tap "Connect Google Drive" to share', '');
-    showSetupBanner();
-  }
-
-  // localStorage fallback
-  try { const l = localStorage.getItem(LS_DATA); if(l) songs = JSON.parse(l); } catch(e){}
-  renderSongs();
-}
-
-async function saveSongs() {
-  localStorage.setItem(LS_DATA, JSON.stringify(songs));
-  if (!scriptUrl) return;
-  try {
-    await fetch(`${scriptUrl}?action=write&data=${encodeURIComponent(JSON.stringify(songs))}`);
-    setSyncStatus('✓ Saved to Google Drive', '');
-  } catch(e) {
-    setSyncStatus('⚠ Could not save to Drive (local saved)', 'sync-err');
-  }
-  try { new BroadcastChannel('stage_v2').postMessage('u'); } catch(e){}
-}
-
-// Poll every 6s if Drive connected
-function startPolling() {
-  if (!scriptUrl) return;
-  setInterval(async () => {
-    try {
-      const r = await fetch(`${scriptUrl}?action=read`);
-      const j = await r.json();
-      if (j.songs && JSON.stringify(j.songs) !== JSON.stringify(songs)) {
-        songs = j.songs;
-        localStorage.setItem(LS_DATA, JSON.stringify(songs));
-        renderSongs();
-        setSyncStatus('↻ Updated from Drive', '');
-      }
-    } catch(e){}
-  }, 6000);
-}
-
-try { const bc = new BroadcastChannel('stage_v2'); bc.onmessage = () => loadSongs(); } catch(e){}
-
-// ════════════════════════════════════════
-//  SETUP
-// ════════════════════════════════════════
-function updateSetupLink() {
-  const lnk = document.getElementById('setupLink');
-  lnk.style.display = 'inline';
-  lnk.textContent = scriptUrl ? '⚙️ Drive connected ✓' : '⚙️ Connect Google Drive';
-}
-
-function showSetupBanner() {
-  document.getElementById('setupBannerWrap').innerHTML = `
-    <div class="setup-banner">
-      <strong>No Google Drive connection yet.</strong>
-      Data is saved locally in this browser only.
-      <a href="#" onclick="openSetup();return false;">Set up Google Drive sync →</a>
-      to share the setlist with all cousins and enable Drive export.
-    </div>`;
-}
-
-function openSetup() {
-  document.getElementById('scriptCode').textContent = APPS_SCRIPT;
-  document.getElementById('inpScriptUrl').value = scriptUrl;
-  document.getElementById('setupOverlay').classList.add('open');
-}
-function closeSetup() { document.getElementById('setupOverlay').classList.remove('open'); }
-
-function saveScriptUrl() {
-  const url = document.getElementById('inpScriptUrl').value.trim();
-  if (!url.startsWith('https://script.google.com')) {
-    showToast('Please paste a valid Apps Script URL', true); return;
-  }
-  scriptUrl = url;
-  localStorage.setItem(LS_URL, url);
-  closeSetup();
-  document.getElementById('setupBannerWrap').innerHTML = '';
-  updateSetupLink();
-  loadSongs();
-  startPolling();
-}
-
-function copyScript() {
-  navigator.clipboard.writeText(APPS_SCRIPT)
-    .then(() => showToast('Script copied! Paste it in Apps Script'))
-    .catch(() => showToast('Select the code above and copy manually'));
-}
-
-// ════════════════════════════════════════
-//  SORT
-// ════════════════════════════════════════
-function toggleSort() {
-  sortMode = !sortMode;
-  const btn = document.getElementById('btnSort');
-  btn.classList.toggle('active', sortMode);
-  btn.innerHTML = sortMode
-    ? '🔤 Sort by Singer <span class="sort-badge">ON</span>'
-    : '🔤 Sort by Singer';
-  renderSongs();
-  showToast(sortMode ? 'Sorted A–Z by first singer' : 'Back to setlist order');
-}
-
-function getDisplaySongs() {
-  if (!sortMode) return [...songs];
-  return [...songs].sort((a, b) => {
-    const sa = (a.singers[0] || 'zzz').toLowerCase();
-    const sb = (b.singers[0] || 'zzz').toLowerCase();
-    return sa < sb ? -1 : sa > sb ? 1 : 0;
-  });
-}
-
-// ════════════════════════════════════════
-//  RENDER
-// ════════════════════════════════════════
-function renderSongs() {
-  const list  = document.getElementById('songList');
-  const badge = document.getElementById('countBadge');
-  const hint  = document.getElementById('dragHint');
-
-  badge.textContent = songs.length + (songs.length===1?' song':' songs');
-  hint.style.display = songs.length > 1 ? 'block' : 'none';
-
-  if (!songs.length) {
-    list.innerHTML = `<div class="empty-state"><div class="emoji">🎵</div><p>No songs yet!<br>Tap <b>Add Song</b> to build your setlist.</p></div>`;
+  if (!url || !key) {
+    document.getElementById('setup-screen').classList.add('visible');
     return;
   }
 
-  const display = getDisplaySongs();
-
-  list.innerHTML = display.map((s, i) => `
-    <div class="song-card" id="sc-${s.id}" data-id="${s.id}" data-dispidx="${i}" draggable="${!sortMode}">
-      <div class="song-card-header">
-        <div class="drag-handle" style="${sortMode?'opacity:.1;cursor:default;':''}" title="${sortMode?'Disable sort to reorder':'Drag to reorder'}">
-          <span></span><span></span><span></span>
-        </div>
-        <div class="song-num">${i+1}</div>
-        <div class="song-info">
-          <div class="song-name" title="${esc(s.name)}">${esc(s.name)}</div>
-          <div class="song-singers">
-            ${s.singers.length
-              ? s.singers.map((sg,si)=>`<span class="singer-tag${si===0?' primary':''}">${si===0?'🎙 ':''}${esc(sg)}</span>`).join('')
-              : '<span style="color:var(--text-muted);font-size:12px;">No singer assigned</span>'}
-          </div>
-        </div>
-        <div class="song-actions">
-          <button class="icon-btn edit-btn" data-edit="${s.id}" title="Edit">✏️</button>
-          <button class="icon-btn danger" data-del="${s.id}" title="Delete">🗑️</button>
-        </div>
-      </div>
-      <div class="karaoke-row">
-        ${s.karaoke
-          ? `<a href="${esc(s.karaoke)}" class="karaoke-link" target="_blank" rel="noopener">🎵 Karaoke ↗</a>`
-          : `<span class="no-link">No karaoke link</span>`}
-      </div>
-    </div>`).join('');
-
-  list.querySelectorAll('.song-card').forEach(card => {
-    const dispIdx = parseInt(card.dataset.dispidx);
-    const id      = card.dataset.id;
-
-    if (!sortMode) {
-      card.addEventListener('dragstart', e => deskDragStart(e, dispIdx));
-      card.addEventListener('dragover',  e => deskDragOver(e, dispIdx));
-      card.addEventListener('dragleave', ()=> card.classList.remove('drag-over'));
-      card.addEventListener('drop',      e => deskDrop(e, dispIdx));
-      card.addEventListener('dragend',   ()=> deskDragEnd());
-      card.querySelector('.drag-handle').addEventListener('touchstart', e => touchStart(e, dispIdx), {passive:false});
-    }
-
-    card.querySelector('[data-edit]').addEventListener('click', () => openEditModal(id));
-    card.querySelector('[data-del]').addEventListener('click',  () => deleteSong(id));
-  });
-}
-
-// ════════════════════════════════════════
-//  DRAG & DROP (desktop)
-// ════════════════════════════════════════
-function deskDragStart(e, idx) {
-  dragSrcIdx = idx; e.dataTransfer.effectAllowed = 'move';
-  setTimeout(() => document.querySelector(`[data-dispidx="${idx}"]`)?.classList.add('dragging'), 0);
-}
-function deskDragOver(e, idx) {
-  e.preventDefault();
-  if (dragOverIdx !== idx) {
-    document.querySelector(`[data-dispidx="${dragOverIdx}"]`)?.classList.remove('drag-over');
-    dragOverIdx = idx;
-    if (idx !== dragSrcIdx) document.querySelector(`[data-dispidx="${idx}"]`)?.classList.add('drag-over');
+  try {
+    supabase_client = supabase.createClient(url, key);
+    await ensureTable();
+    await loadSongs();
+    buildSingerChips();
+  } catch(e) {
+    showStatus('Connection failed: ' + e.message, 'error');
+    document.getElementById('list-container').innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">Connection Failed</div><div class="empty-sub">Check your Supabase credentials</div></div>';
   }
 }
-function deskDrop(e, idx) {
-  e.preventDefault();
-  if (dragSrcIdx !== null && dragSrcIdx !== idx) reorder(dragSrcIdx, idx);
-}
-function deskDragEnd() {
-  document.querySelectorAll('.song-card').forEach(c => c.classList.remove('dragging','drag-over'));
-  dragSrcIdx = null; dragOverIdx = null;
+
+async function saveConfig() {
+  const url = document.getElementById('cfg-url').value.trim();
+  const key = document.getElementById('cfg-key').value.trim();
+  if (!url || !key) { alert('Both fields required'); return; }
+  localStorage.setItem('sb_url', url);
+  localStorage.setItem('sb_key', key);
+  document.getElementById('setup-screen').classList.remove('visible');
+  supabase_client = supabase.createClient(url, key);
+  await ensureTable();
+  await loadSongs();
+  buildSingerChips();
 }
 
-// ════════════════════════════════════════
-//  DRAG & DROP (touch)
-// ════════════════════════════════════════
-function touchStart(e, idx) {
-  if (sortMode) return;
-  e.preventDefault();
-  touchSrcIdx = idx;
-  const card = document.querySelector(`[data-dispidx="${idx}"]`);
-  const rect  = card.getBoundingClientRect();
-  const t = e.touches[0];
-  const ox = t.clientX - rect.left, oy = t.clientY - rect.top;
+async function ensureTable() {
+  // Try to create table via RPC if it doesn't exist (best effort)
+  // The table should be created in Supabase dashboard with:
+  // id uuid default gen_random_uuid() primary key,
+  // name text not null,
+  // singers text[] default '{}',
+  // karaoke_link text default '',
+  // sort_order integer default 0,
+  // created_at timestamptz default now()
+  const { error } = await supabase_client.from(TABLE).select('id').limit(1);
+  if (error && error.code === '42P01') {
+    showStatus('Table not found. Please create the "setlist_songs" table in Supabase — see instructions below.', 'error');
+  }
+}
 
-  touchClone = card.cloneNode(true);
-  Object.assign(touchClone.style, {
-    position:'fixed', top:rect.top+'px', left:rect.left+'px',
-    width:rect.width+'px', opacity:'.82', zIndex:'500',
-    pointerEvents:'none', border:'2px solid var(--primary-mid)',
-    borderRadius:'var(--radius)', boxShadow:'0 10px 36px rgba(0,0,0,.55)', transition:'none'
+// ---- LOAD ----
+async function loadSongs() {
+  const { data, error } = await supabase_client
+    .from(TABLE)
+    .select('*')
+    .order('sort_order', { ascending: true });
+
+  if (error) { showStatus('Load error: ' + error.message, 'error'); return; }
+  songs = data || [];
+  renderList();
+}
+
+// ---- RENDER ----
+function renderList() {
+  const count = songs.length;
+  document.getElementById('song-count').textContent = count + (count === 1 ? ' song' : ' songs');
+
+  const container = document.getElementById('list-container');
+  if (!count) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🎵</div>
+        <div class="empty-text">No songs yet!</div>
+        <div class="empty-sub">Tap + to add your first song</div>
+      </div>`;
+    return;
+  }
+
+  const ul = document.createElement('ul');
+  ul.className = 'song-list';
+  ul.id = 'song-list';
+
+  songs.forEach((song, i) => {
+    const li = document.createElement('li');
+    li.className = 'song-card';
+    li.dataset.id = song.id;
+    li.dataset.index = i;
+    li.draggable = true;
+
+    const singers = (song.singers || []).join(', ');
+    const linkHtml = song.karaoke_link
+      ? `<a class="karaoke-link" href="${escHtml(song.karaoke_link)}" target="_blank" rel="noopener">🎧 Karaoke</a>`
+      : `<span style="color:var(--border);font-size:11px">No link</span>`;
+
+    const singerTags = (song.singers || []).map(s =>
+      `<span class="singer-tag">${escHtml(s)}</span>`).join('');
+
+    li.innerHTML = `
+      <div class="song-num">${i + 1}</div>
+      <div class="song-info">
+        <div class="song-name">${escHtml(song.name)}</div>
+        <div class="song-singers">${singerTags || '<span style="color:var(--muted);font-size:11px">No singer</span>'}</div>
+        ${linkHtml}
+      </div>
+      <div class="song-actions">
+        <button class="icon-btn edit" onclick="editSong('${song.id}')" title="Edit">✏️</button>
+        <button class="icon-btn delete" onclick="deleteSong('${song.id}')" title="Delete">🗑️</button>
+        <div class="drag-handle" title="Drag to reorder">⠿</div>
+      </div>
+    `;
+
+    // Desktop drag events
+    li.addEventListener('dragstart', onDragStart);
+    li.addEventListener('dragover', onDragOver);
+    li.addEventListener('drop', onDrop);
+    li.addEventListener('dragend', onDragEnd);
+
+    // Touch drag via handle
+    const handle = li.querySelector('.drag-handle');
+    handle.addEventListener('touchstart', onTouchStart, { passive: false });
+
+    ul.appendChild(li);
   });
+
+  container.innerHTML = '';
+  container.appendChild(ul);
+  document.addEventListener('touchmove', onTouchMove, { passive: false });
+  document.addEventListener('touchend', onTouchEnd);
+}
+
+// ---- MODAL ----
+function buildSingerChips() {
+  const grid = document.getElementById('singer-grid');
+  grid.innerHTML = '';
+  COUSINS.forEach(name => {
+    const chip = document.createElement('div');
+    chip.className = 'singer-chip';
+    chip.textContent = name;
+    chip.dataset.name = name;
+    chip.addEventListener('click', () => toggleSinger(name, chip));
+    grid.appendChild(chip);
+  });
+}
+
+function toggleSinger(name, el) {
+  if (selectedSingers.includes(name)) {
+    selectedSingers = selectedSingers.filter(s => s !== name);
+    el.classList.remove('selected');
+  } else {
+    selectedSingers.push(name);
+    el.classList.add('selected');
+  }
+}
+
+function openModal(song = null) {
+  editingId = song ? song.id : null;
+  selectedSingers = song ? [...(song.singers || [])] : [];
+
+  document.getElementById('modal-title').textContent = song ? 'Edit Song' : 'Add New Song';
+  document.getElementById('inp-name').value = song ? song.name : '';
+  document.getElementById('inp-link').value = song ? (song.karaoke_link || '') : '';
+
+  // Reset chips
+  document.querySelectorAll('.singer-chip').forEach(chip => {
+    chip.classList.toggle('selected', selectedSingers.includes(chip.dataset.name));
+  });
+
+  document.getElementById('modal-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('inp-name').focus(), 350);
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  editingId = null;
+  selectedSingers = [];
+}
+
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+}
+
+async function saveSong() {
+  const name = document.getElementById('inp-name').value.trim();
+  if (!name) { showStatus('Song name is required', 'error'); return; }
+
+  const link = document.getElementById('inp-link').value.trim();
+
+  if (editingId) {
+    const { error } = await supabase_client.from(TABLE)
+      .update({ name, singers: selectedSingers, karaoke_link: link })
+      .eq('id', editingId);
+    if (error) { showStatus('Save error: ' + error.message, 'error'); return; }
+    showStatus('Song updated ✓', 'success');
+  } else {
+    const maxOrder = songs.length > 0 ? Math.max(...songs.map(s => s.sort_order || 0)) : -1;
+    const { error } = await supabase_client.from(TABLE).insert({
+      name, singers: selectedSingers, karaoke_link: link, sort_order: maxOrder + 1
+    });
+    if (error) { showStatus('Save error: ' + error.message, 'error'); return; }
+    showStatus('Song added ✓', 'success');
+  }
+
+  closeModal();
+  await loadSongs();
+}
+
+function editSong(id) {
+  const song = songs.find(s => s.id === id);
+  if (song) openModal(song);
+}
+
+async function deleteSong(id) {
+  const song = songs.find(s => s.id === id);
+  if (!confirm(`Delete "${song?.name}"?`)) return;
+  const { error } = await supabase_client.from(TABLE).delete().eq('id', id);
+  if (error) { showStatus('Delete error: ' + error.message, 'error'); return; }
+  showStatus('Song deleted', 'info');
+  await loadSongs();
+}
+
+// ---- DRAG & DROP (Desktop) ----
+function onDragStart(e) {
+  dragSrc = this;
+  this.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+function onDragOver(e) {
+  e.preventDefault();
+  document.querySelectorAll('.song-card').forEach(c => c.classList.remove('drag-over'));
+  this.classList.add('drag-over');
+}
+function onDrop(e) {
+  e.preventDefault();
+  if (dragSrc && dragSrc !== this) {
+    const srcIdx = parseInt(dragSrc.dataset.index);
+    const dstIdx = parseInt(this.dataset.index);
+    reorderAndSave(srcIdx, dstIdx);
+  }
+}
+function onDragEnd() {
+  document.querySelectorAll('.song-card').forEach(c => {
+    c.classList.remove('dragging', 'drag-over');
+  });
+  dragSrc = null;
+}
+
+// ---- TOUCH DRAG ----
+function onTouchStart(e) {
+  e.preventDefault();
+  const card = e.target.closest('.song-card');
+  if (!card) return;
+  touchDragEl = card;
+  touchDragIndex = parseInt(card.dataset.index);
+
+  const rect = card.getBoundingClientRect();
+  touchClone = card.cloneNode(true);
+  touchClone.style.cssText = `
+    position:fixed; left:${rect.left}px; top:${rect.top}px;
+    width:${rect.width}px; opacity:0.85; z-index:999;
+    pointer-events:none; border-color:var(--gold);
+    box-shadow:0 12px 40px rgba(0,0,0,0.6);
+    transition:none;
+  `;
   document.body.appendChild(touchClone);
   card.classList.add('dragging');
-
-  function move(ev) {
-    ev.preventDefault();
-    const tc = ev.touches[0];
-    touchClone.style.top  = (tc.clientY - oy)+'px';
-    touchClone.style.left = (tc.clientX - ox)+'px';
-    touchClone.style.display='none';
-    const el = document.elementFromPoint(tc.clientX, tc.clientY);
-    touchClone.style.display='';
-    const hov = el?.closest('.song-card');
-    document.querySelectorAll('.song-card').forEach(c=>c.classList.remove('drag-over'));
-    if (hov) { const hi=parseInt(hov.dataset.dispidx); if(hi!==touchSrcIdx) hov.classList.add('drag-over'); }
-  }
-  function end(ev) {
-    document.removeEventListener('touchmove', move);
-    document.removeEventListener('touchend', end);
-    touchClone?.remove(); touchClone=null;
-    document.querySelectorAll('.song-card').forEach(c=>c.classList.remove('dragging','drag-over'));
-    const tc = ev.changedTouches[0];
-    const el = document.elementFromPoint(tc.clientX, tc.clientY);
-    const hov = el?.closest('.song-card');
-    if (hov) { const hi=parseInt(hov.dataset.dispidx); if(!isNaN(hi)&&hi!==touchSrcIdx) reorder(touchSrcIdx, hi); }
-    touchSrcIdx=null;
-  }
-  document.addEventListener('touchmove', move, {passive:false});
-  document.addEventListener('touchend', end);
 }
 
-function reorder(from, to) {
-  const [moved] = songs.splice(from, 1);
-  songs.splice(to, 0, moved);
-  saveSongs(); renderSongs();
-  showToast(`Moved to position ${to+1} 🎵`);
-}
+function onTouchMove(e) {
+  if (!touchClone) return;
+  e.preventDefault();
+  const touch = e.touches[0];
+  const rect = touchDragEl.getBoundingClientRect();
+  touchClone.style.top = (touch.clientY - rect.height / 2) + 'px';
+  touchClone.style.left = rect.left + 'px';
 
-// ════════════════════════════════════════
-//  ADD / EDIT MODAL
-// ════════════════════════════════════════
-function refreshCousinsGrid() {
-  document.getElementById('cousinsGrid').innerHTML = COUSINS.map(c =>
-    `<button class="cousin-btn${selectedSingers.includes(c)?' selected':''}" data-name="${esc(c)}">${esc(c)}</button>`
-  ).join('');
-  document.querySelectorAll('.cousin-btn').forEach(b =>
-    b.addEventListener('click', () => toggleSinger(b.dataset.name))
-  );
-  const prev = document.getElementById('selectedPreview');
-  prev.innerHTML = selectedSingers.length
-    ? selectedSingers.map(s=>`<span class="sel-chip">${esc(s)}</span>`).join('')
-    : '<span style="font-size:12px;color:var(--text-muted);">None — tap names above</span>';
-}
+  // Find card under touch
+  touchClone.style.display = 'none';
+  const el = document.elementFromPoint(touch.clientX, touch.clientY);
+  touchClone.style.display = '';
+  const overCard = el ? el.closest('.song-card') : null;
 
-function toggleSinger(name) {
-  selectedSingers = selectedSingers.includes(name)
-    ? selectedSingers.filter(s=>s!==name)
-    : [...selectedSingers, name];
-  refreshCousinsGrid();
-}
-
-function openAddModal() {
-  editingId=null; selectedSingers=[];
-  document.getElementById('modalTitle').textContent = 'Add Song';
-  document.getElementById('inpSongName').value = '';
-  document.getElementById('inpKaraoke').value  = '';
-  refreshCousinsGrid();
-  document.getElementById('modalOverlay').classList.add('open');
-  setTimeout(()=>document.getElementById('inpSongName').focus(), 320);
-}
-
-function openEditModal(id) {
-  const s = songs.find(x=>x.id===id); if(!s) return;
-  editingId=id; selectedSingers=[...s.singers];
-  document.getElementById('modalTitle').textContent = 'Edit Song';
-  document.getElementById('inpSongName').value = s.name;
-  document.getElementById('inpKaraoke').value  = s.karaoke||'';
-  refreshCousinsGrid();
-  document.getElementById('modalOverlay').classList.add('open');
-}
-
-function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
-function handleOverlayClick(e) { if(e.target===document.getElementById('modalOverlay')) closeModal(); }
-
-function saveSong() {
-  const name = document.getElementById('inpSongName').value.trim();
-  if (!name) { showToast('Please enter a song name', true); return; }
-  const karaoke = document.getElementById('inpKaraoke').value.trim();
-  if (editingId) {
-    const i = songs.findIndex(s=>s.id===editingId);
-    if(i>-1) songs[i] = {...songs[i], name, singers:selectedSingers, karaoke};
-    showToast('Song updated ✓');
-  } else {
-    songs.push({id:uid(), name, singers:selectedSingers, karaoke, addedAt:new Date().toISOString()});
-    showToast('Song added ✓');
-  }
-  saveSongs(); renderSongs(); closeModal();
-}
-
-function deleteSong(id) {
-  if (!confirm('Remove this song from the setlist?')) return;
-  songs = songs.filter(s=>s.id!==id);
-  saveSongs(); renderSongs(); showToast('Song removed');
-}
-
-// ════════════════════════════════════════
-//  EXPORT MODAL
-// ════════════════════════════════════════
-function openExportModal()  { document.getElementById('exportOverlay').classList.add('open'); }
-function closeExportModal() { document.getElementById('exportOverlay').classList.remove('open'); }
-
-function buildWorkbook() {
-  const display = getDisplaySongs();
-  const rows = [['#','Song Name','Singers','Karaoke Link','Added']];
-  display.forEach((s,i) => rows.push([
-    i+1, s.name, s.singers.join(', '), s.karaoke||'',
-    s.addedAt ? new Date(s.addedAt).toLocaleDateString('en-IN') : ''
-  ]));
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [{wch:4},{wch:32},{wch:32},{wch:46},{wch:14}];
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Setlist');
-  return {wb, display};
-}
-
-function exportLocal() {
-  if (!songs.length) { showToast('No songs to export', true); return; }
-  const {wb} = buildWorkbook();
-  XLSX.writeFile(wb, 'StageShow_Setlist.xlsx');
-  closeExportModal();
-  showToast('Downloaded to device 💾');
-}
-
-async function exportToDrive() {
-  if (!songs.length) { showToast('No songs to export', true); return; }
-  if (!scriptUrl) {
-    closeExportModal();
-    showToast('Connect Google Drive first', true);
-    setTimeout(openSetup, 600);
-    return;
-  }
-  const display = getDisplaySongs();
-  closeExportModal();
-  showToast('Exporting to Google Drive…');
-  try {
-    const r = await fetch(`${scriptUrl}?action=exportXls&data=${encodeURIComponent(JSON.stringify(display))}`);
-    const j = await r.json();
-    if (j.ok) showToast('✓ Saved to Google Drive!');
-    else showToast('Drive export failed', true);
-  } catch(e) {
-    showToast('Drive export error — check connection', true);
+  document.querySelectorAll('.song-card').forEach(c => c.classList.remove('drag-over'));
+  if (overCard && overCard !== touchDragEl) {
+    overCard.classList.add('drag-over');
   }
 }
 
-// ════════════════════════════════════════
-//  TOAST
-// ════════════════════════════════════════
-function showToast(msg, isErr=false) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast show' + (isErr?' err':'');
-  clearTimeout(t._t);
-  t._t = setTimeout(()=>{ t.classList.remove('show'); }, 2800);
+function onTouchEnd(e) {
+  if (!touchClone) return;
+  const touch = e.changedTouches[0];
+  touchClone.style.display = 'none';
+  const el = document.elementFromPoint(touch.clientX, touch.clientY);
+  const overCard = el ? el.closest('.song-card') : null;
+
+  document.body.removeChild(touchClone);
+  touchClone = null;
+  touchDragEl.classList.remove('dragging');
+  document.querySelectorAll('.song-card').forEach(c => c.classList.remove('drag-over'));
+
+  if (overCard && overCard !== touchDragEl) {
+    const dstIdx = parseInt(overCard.dataset.index);
+    reorderAndSave(touchDragIndex, dstIdx);
+  }
+  touchDragEl = null;
+  touchDragIndex = null;
 }
 
-// ════════════════════════════════════════
-//  INIT
-// ════════════════════════════════════════
-document.addEventListener('keydown', e => {
-  if (e.key==='Escape') { closeModal(); closeExportModal(); closeSetup(); }
-  if ((e.ctrlKey||e.metaKey) && e.key==='Enter') saveSong();
-});
+async function reorderAndSave(srcIdx, dstIdx) {
+  if (srcIdx === dstIdx) return;
+  const arr = [...songs];
+  const [moved] = arr.splice(srcIdx, 1);
+  arr.splice(dstIdx, 0, moved);
+  songs = arr;
 
-loadSongs().then(() => startPolling());
+  // Optimistic render
+  songs.forEach((s, i) => s.sort_order = i);
+  renderList();
+
+  // Persist to Supabase
+  const updates = songs.map((s, i) => ({ id: s.id, sort_order: i }));
+  for (const u of updates) {
+    await supabase_client.from(TABLE).update({ sort_order: u.sort_order }).eq('id', u.id);
+  }
+}
+
+// ---- UTILS ----
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+let statusTimer;
+function showStatus(msg, type) {
+  const bar = document.getElementById('status-bar');
+  bar.textContent = msg;
+  bar.className = type;
+  clearTimeout(statusTimer);
+  statusTimer = setTimeout(() => { bar.className = ''; bar.textContent = ''; }, 3500);
+}
+
+init();
 </script>
+
+<!-- Supabase Table Setup Instructions (hidden comment) -->
+<!--
+CREATE TABLE IF NOT EXISTS setlist_songs (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  name text NOT NULL,
+  singers text[] DEFAULT '{}',
+  karaoke_link text DEFAULT '',
+  sort_order integer DEFAULT 0,
+  created_at timestamptz DEFAULT now()
+);
+
+-- Enable Row Level Security (optional, for open access):
+ALTER TABLE setlist_songs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all" ON setlist_songs FOR ALL USING (true) WITH CHECK (true);
+-->
 </body>
 </html>
