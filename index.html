@@ -667,14 +667,24 @@ function openPlayer(id){
     wrap.appendChild(aud);
     body.appendChild(wrap);
   } else {
-    // Unknown — show open-in-browser fallback
+    // Detect known streaming services for a better message
+    let svcName = 'this link', svcIco = '🔗';
+    try{
+      const h = new URL(url).hostname;
+      if(h.includes('spotify'))    { svcName='Spotify';      svcIco='🎵'; }
+      else if(h.includes('gaana')) { svcName='Gaana';        svcIco='🎵'; }
+      else if(h.includes('jiosaavn')||h.includes('saavn')) { svcName='JioSaavn'; svcIco='🎵'; }
+      else if(h.includes('wynk'))  { svcName='Wynk';         svcIco='🎵'; }
+      else if(h.includes('apple')) { svcName='Apple Music';  svcIco='🎵'; }
+      else if(h.includes('soundcloud')) { svcName='SoundCloud'; svcIco='☁️'; }
+    } catch(_){}
     const fb = document.createElement('div');
     fb.className = 'pm-fallback';
     fb.innerHTML = `
-      <div class="pm-fallback-ico">🔗</div>
-      <div class="pm-fallback-txt">Can't embed this link directly.<br>Tap below to open it.</div>
+      <div class="pm-fallback-ico">${svcIco}</div>
+      <div class="pm-fallback-txt">${svcName} links open in the app or browser.<br>Tap below to play it.</div>
       <a class="pm-open-link" href="${x(url)}" target="_blank" rel="noopener" onclick="closePlayer()">
-        ↗ Open Link
+        ↗ Open in ${svcName}
       </a>`;
     body.appendChild(fb);
   }
@@ -702,12 +712,26 @@ document.addEventListener('keydown', e=>{
 function getYouTubeId(url){
   try{
     const u = new URL(url);
-    if(u.hostname.includes('youtube.com')) return u.searchParams.get('v');
+    // youtu.be/ID
     if(u.hostname==='youtu.be') return u.pathname.slice(1).split('?')[0];
-    if(u.hostname.includes('youtube.com') && u.pathname.startsWith('/embed/'))
-      return u.pathname.split('/embed/')[1].split('?')[0];
+    if(u.hostname.includes('youtube.com')){
+      // /watch?v=ID
+      if(u.searchParams.get('v')) return u.searchParams.get('v');
+      // /embed/ID
+      if(u.pathname.startsWith('/embed/')) return u.pathname.split('/embed/')[1].split('?')[0];
+      // /shorts/ID
+      if(u.pathname.startsWith('/shorts/')) return u.pathname.split('/shorts/')[1].split('?')[0];
+      // /v/ID
+      if(u.pathname.startsWith('/v/')) return u.pathname.split('/v/')[1].split('?')[0];
+      // YouTube Music: music.youtube.com/watch?v=ID
+      if(u.searchParams.get('v')) return u.searchParams.get('v');
+    }
+    // music.youtube.com
+    if(u.hostname==='music.youtube.com' && u.searchParams.get('v')) return u.searchParams.get('v');
   } catch(_){}
-  return null;
+  // Regex fallback for any youtube URL pattern
+  const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|v\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : null;
 }
 
 function isVideo(url){
