@@ -639,6 +639,8 @@ function openPlayer(id){
   body.innerHTML = '';
 
   const ytId = getYouTubeId(url);
+  const gdrive = getGDriveEmbed(url);
+
   if(ytId){
     // YouTube embed
     const wrap = document.createElement('div');
@@ -647,6 +649,17 @@ function openPlayer(id){
     iframe.src = `https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0`;
     iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
     iframe.allowFullscreen = true;
+    wrap.appendChild(iframe);
+    body.appendChild(wrap);
+  } else if(gdrive){
+    // Google Drive embed — works for both video and audio files
+    const wrap = document.createElement('div');
+    wrap.className = 'pm-video-wrap';
+    const iframe = document.createElement('iframe');
+    iframe.src = gdrive.embedUrl;
+    iframe.allow = 'autoplay';
+    iframe.allowFullscreen = true;
+    // Drive preview has its own player UI for both video & audio
     wrap.appendChild(iframe);
     body.appendChild(wrap);
   } else if(isVideo(url)){
@@ -712,26 +725,32 @@ document.addEventListener('keydown', e=>{
 function getYouTubeId(url){
   try{
     const u = new URL(url);
-    // youtu.be/ID
     if(u.hostname==='youtu.be') return u.pathname.slice(1).split('?')[0];
     if(u.hostname.includes('youtube.com')){
-      // /watch?v=ID
       if(u.searchParams.get('v')) return u.searchParams.get('v');
-      // /embed/ID
       if(u.pathname.startsWith('/embed/')) return u.pathname.split('/embed/')[1].split('?')[0];
-      // /shorts/ID
       if(u.pathname.startsWith('/shorts/')) return u.pathname.split('/shorts/')[1].split('?')[0];
-      // /v/ID
       if(u.pathname.startsWith('/v/')) return u.pathname.split('/v/')[1].split('?')[0];
-      // YouTube Music: music.youtube.com/watch?v=ID
-      if(u.searchParams.get('v')) return u.searchParams.get('v');
     }
-    // music.youtube.com
     if(u.hostname==='music.youtube.com' && u.searchParams.get('v')) return u.searchParams.get('v');
   } catch(_){}
-  // Regex fallback for any youtube URL pattern
   const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|v\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
   return m ? m[1] : null;
+}
+
+// Returns {type:'video'|'audio', embedUrl} for Google Drive file links, or null
+function getGDriveEmbed(url){
+  try{
+    const u = new URL(url);
+    if(!u.hostname.includes('drive.google.com')) return null;
+    // Extract file ID from /file/d/FILE_ID/view or /open?id=FILE_ID
+    let fileId = null;
+    const m = u.pathname.match(/\/file\/d\/([^/]+)/);
+    if(m) fileId = m[1];
+    else if(u.searchParams.get('id')) fileId = u.searchParams.get('id');
+    if(!fileId) return null;
+    return { fileId, embedUrl: `https://drive.google.com/file/d/${fileId}/preview` };
+  } catch(_){ return null; }
 }
 
 function isVideo(url){
