@@ -54,7 +54,7 @@ header{flex-shrink:0;display:flex;align-items:center;gap:10px;
 
 /* ── COLUMN HEADS ── */
 .col-head{flex-shrink:0;display:grid;
-  grid-template-columns:34px 1fr 1fr 80px 62px;
+  grid-template-columns:44px 1fr 1fr 80px 62px;
   padding:0 10px;height:30px;align-items:center;
   background:var(--s1);border-bottom:1px solid var(--border);}
 .ch{font-size:10px;font-weight:700;color:var(--text2);
@@ -65,7 +65,7 @@ header{flex-shrink:0;display:flex;align-items:center;gap:10px;
 
 /* ── ROW ── */
 .row{display:grid;
-  grid-template-columns:34px 1fr 1fr 80px 62px;
+  grid-template-columns:44px 1fr 1fr 80px 62px;
   min-height:46px;border-bottom:1px solid var(--border);
   background:var(--s1);align-items:stretch;position:relative;
   transition:background .12s;}
@@ -77,12 +77,13 @@ header{flex-shrink:0;display:flex;align-items:center;gap:10px;
 
 /* cells */
 .cell{display:flex;align-items:center;padding:0 5px;min-width:0;overflow:hidden;}
-.c-num{justify-content:center;
+.c-num{justify-content:center;align-items:center;
   font-family:'Geist Mono',monospace;font-size:11px;color:var(--border2);
   cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;
-  flex-direction:column;gap:2px;}
+  flex-direction:column;gap:1px;}
 .row.editing .c-num{cursor:default;color:rgba(251,191,36,.4);}
-.drag-icon{font-size:15px;line-height:1}
+.drag-icon{font-size:13px;line-height:1;color:var(--border2);}
+.row-num{font-size:10px;font-family:'Geist Mono',monospace;color:var(--text2);line-height:1;}
 
 .c-name{font-size:15px;font-weight:500;}
 .c-name .dv{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;}
@@ -229,7 +230,7 @@ footer{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
   font-size:10px;color:var(--text2);font-family:'Geist Mono',monospace;}
 
 @media(max-width:400px){
-  .col-head,.row{grid-template-columns:30px 1fr 1fr 72px 58px}
+  .col-head,.row{grid-template-columns:40px 1fr 1fr 72px 58px}
   .c-name input,.c-name .dv{font-size:14px}
 }
 </style>
@@ -427,7 +428,7 @@ function mkRow(song,i){
     div.innerHTML=`
       <div class="cell c-num" title="Drag to reorder">
         <span class="drag-icon">⠿</span>
-        <span style="font-size:10px;font-family:'Geist Mono',monospace">${i+1}</span>
+        <span class="row-num">${i+1}</span>
       </div>
       <div class="cell c-name"><span class="dv">${x(name)}</span></div>
       <div class="cell c-singers">${singerHtml}</div>
@@ -642,15 +643,31 @@ function openPlayer(id){
   const gdrive = getGDriveEmbed(url);
 
   if(ytId){
-    // YouTube embed
+    // YouTube embed — with fallback if video owner disabled embedding
     const wrap = document.createElement('div');
     wrap.className = 'pm-video-wrap';
+    wrap.style.position = 'relative';
+
     const iframe = document.createElement('iframe');
     iframe.src = `https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0`;
     iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
     iframe.allowFullscreen = true;
     wrap.appendChild(iframe);
+
+    // Fallback bar shown below — always visible as option
+    const fbBar = document.createElement('div');
+    fbBar.style.cssText = 'margin-top:10px;display:flex;flex-direction:column;align-items:center;gap:8px;';
+    fbBar.innerHTML = `
+      <div style="font-size:11px;color:var(--text2);">If the video shows "unavailable", open it directly:</div>
+      <a href="https://www.youtube.com/watch?v=${ytId}" target="_blank" rel="noopener"
+         onclick="closePlayer()"
+         style="display:inline-flex;align-items:center;gap:7px;padding:10px 20px;
+           border-radius:10px;background:rgba(255,0,0,0.12);border:1px solid rgba(255,80,80,0.3);
+           color:#ff6060;font-size:14px;font-weight:600;text-decoration:none;font-family:'DM Sans',sans-serif;">
+        ▶ Open in YouTube
+      </a>`;
     body.appendChild(wrap);
+    body.appendChild(fbBar);
   } else if(gdrive){
     // Google Drive embed — works for both video and audio files
     const wrap = document.createElement('div');
