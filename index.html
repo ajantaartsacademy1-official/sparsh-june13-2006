@@ -6,6 +6,7 @@
 <title>🎤 Sparsh — June 13th 2026</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Geist+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
   --bg:#080810;--s1:#10101c;--s2:#18182a;--s3:#20203a;
@@ -360,55 +361,12 @@ const GAPI_CLIENT_ID = '';
 const GAPI_API_KEY   = '';
 // ────────────────────────────────────────────────
 
-// ── SUPABASE REST HELPERS (no library needed) ────
-const REST = `${SUPABASE_URL}/rest/v1`;
-const HDRS = {
-  'apikey': SUPABASE_KEY,
-  'Authorization': `Bearer ${SUPABASE_KEY}`,
-  'Content-Type': 'application/json',
-  'Prefer': 'return=representation'
-};
-
-async function sbSelect(table, order='sort_order'){
-  const r = await fetch(`${REST}/${table}?select=*&order=${order}.asc`, {headers: HDRS});
-  if(!r.ok) throw new Error(`SELECT failed: ${r.status} ${await r.text()}`);
-  return r.json();
-}
-
-async function sbInsert(table, row){
-  const r = await fetch(`${REST}/${table}`, {
-    method:'POST', headers: HDRS, body: JSON.stringify(row)
+// ── SUPABASE CLIENT ──────────────────────────────
+let db;
+function initDB(){
+  db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth:{ persistSession:false, autoRefreshToken:false }
   });
-  if(!r.ok) throw new Error(`INSERT failed: ${r.status} ${await r.text()}`);
-  return r.json();
-}
-
-async function sbUpdate(table, id, patch){
-  const r = await fetch(`${REST}/${table}?id=eq.${id}`, {
-    method:'PATCH', headers: HDRS, body: JSON.stringify(patch)
-  });
-  if(!r.ok) throw new Error(`UPDATE failed: ${r.status} ${await r.text()}`);
-  return r.json();
-}
-
-async function sbDelete(table, id){
-  const r = await fetch(`${REST}/${table}?id=eq.${id}`, {
-    method:'DELETE', headers: {...HDRS, 'Prefer':''}
-  });
-  if(!r.ok) throw new Error(`DELETE failed: ${r.status} ${await r.text()}`);
-}
-
-async function sbStorageUpload(bucket, path, file){
-  const storageHdrs = {
-    'apikey': SUPABASE_KEY,
-    'Authorization': `Bearer ${SUPABASE_KEY}`,
-    'x-upsert': 'true'
-  };
-  const r = await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}/${path}`, {
-    method:'POST', headers: storageHdrs, body: file
-  });
-  if(!r.ok) throw new Error(`Upload failed: ${r.status} ${await r.text()}`);
-  return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`;
 }
 // ─────────────────────────────────────────────────
 
@@ -506,34 +464,31 @@ async function cacheForOffline(songId){
 
 // ── INIT ─────────────────────────────────────────
 function init(){
-  initIDB(); // fire and forget — never blocks
-  load();    // start immediately
+  initDB();
+  initIDB(); // fire and forget
+  load();
 }
 
 async function load(){
   setFdb('...');
   try{
-    const timeout = new Promise((_,rej) => setTimeout(()=>rej(new Error('Timed out after 8s')), 8000));
-    songs = await Promise.race([sbSelect(TABLE), timeout]);
-    // Save to IDB best-effort (sync, non-blocking)
-    idbPut({id:'__songlist__', blob: new Blob([JSON.stringify(songs)],{type:'application/json'}), mimeType:'application/json'});
+    const timeout = new Promise((_,rej)=>setTimeout(()=>rej(new Error('Timed out')),8000));
+    const {data,error} = await Promise.race([
+      db.from(TABLE).select('*').order('sort_order',{ascending:true}),
+      timeout
+    ]);
+    if(error) throw error;
+    songs = data||[];
+    idbPut({id:'__songlist__', blob:new Blob([JSON.stringify(songs)],{type:'application/json'}), mimeType:'application/json'});
     setFdb('ok');
     render();
   } catch(e){
-    console.error('Load error:', e);
-    // Try offline fallback
+    console.error('Load error:',e);
     const cached = await idbGet('__songlist__');
     if(cached){
-      try{
-        songs = JSON.parse(await cached.blob.text());
-        setFdb('offline');
-        render();
-        toast('⚠ Offline — showing cached setlist','inf');
-      } catch(_){ setFdb('err'); showConnError(e.message); }
-    } else {
-      setFdb('err');
-      showConnError(e.message);
-    }
+      try{ songs=JSON.parse(await cached.blob.text()); setFdb('offline'); render(); toast('⚠ Offline — cached setlist','inf'); }
+      catch(_){ setFdb('err'); showConnError(e.message); }
+    } else { setFdb('err'); showConnError(e.message); }
   }
 }
 
@@ -685,13 +640,15 @@ async function saveRow(id){
   try{
     if(s&&s._new){
       const maxO = songs.filter(s=>!s._new).reduce((m,s)=>Math.max(m,s.sort_order||0),-1);
-      await sbInsert(TABLE, {name, singers:ed.singers, karaoke_link:link, sort_order:maxO+1});
+      const {error} = await db.from(TABLE).insert({name, singers:ed.singers, karaoke_link:link, sort_order:maxO+1});
+      if(error) throw error;
       delete editState[id];
       await load(); toast('Song added ✓','ok');
     } else {
-      await sbUpdate(TABLE, id, {name, singers:ed.singers, karaoke_link:link});
-      const s2 = songs.find(s=>s.id===id);
-      if(s2){s2.name=name; s2.singers=ed.singers; s2.karaoke_link=link;}
+      const {error} = await db.from(TABLE).update({name, singers:ed.singers, karaoke_link:link}).eq('id',id);
+      if(error) throw error;
+      const s2=songs.find(s=>s.id===id);
+      if(s2){s2.name=name;s2.singers=ed.singers;s2.karaoke_link=link;}
       delete editState[id];
       rerenderRow(id); toast('Saved ✓','ok');
     }
@@ -699,11 +656,12 @@ async function saveRow(id){
 }
 
 async function delRow(id){
-  const s = songs.find(s=>s.id===id);
+  const s=songs.find(s=>s.id===id);
   if(!confirm(`Delete "${s?.name||'this song'}"?`)) return;
   try{
-    await sbDelete(TABLE, id);
-    songs = songs.filter(s=>s.id!==id);
+    const {error} = await db.from(TABLE).delete().eq('id',id);
+    if(error) throw error;
+    songs=songs.filter(s=>s.id!==id);
     render(); toast('Deleted','inf');
   } catch(e){ toast('Error: '+e.message,'err'); }
 }
@@ -825,15 +783,15 @@ function startTouch(e,row){
 
 async function doReorder(srcId,dstId){
   if(!srcId||!dstId||srcId===dstId) return;
-  const si = songs.findIndex(s=>s.id===srcId);
-  const di = songs.findIndex(s=>s.id===dstId);
+  const si=songs.findIndex(s=>s.id===srcId);
+  const di=songs.findIndex(s=>s.id===dstId);
   if(si<0||di<0) return;
-  const [mv] = songs.splice(si,1); songs.splice(di,0,mv);
+  const [mv]=songs.splice(si,1); songs.splice(di,0,mv);
   songs.forEach((s,i)=>s.sort_order=i);
   render();
   try{
-    for(const s of songs) await sbUpdate(TABLE, s.id, {sort_order:s.sort_order});
-  } catch(e){ toast('Reorder save failed: '+e.message,'err'); }
+    for(const s of songs) await db.from(TABLE).update({sort_order:s.sort_order}).eq('id',s.id);
+  } catch(e){ toast('Reorder failed: '+e.message,'err'); }
 }
 
 // ── FILE UPLOAD TO SUPABASE STORAGE ──────────────
@@ -842,26 +800,26 @@ const BUCKET = 'karaoke-files';
 async function uploadFile(event, rowId){
   const file = event.target.files[0];
   if(!file) return;
-
-  const prog   = document.getElementById('up-'+rowId);
-  const linkInp = document.getElementById('l-'+rowId);
-  if(prog) prog.textContent = 'Uploading…';
-
-  const safe = file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-  const path = `${Date.now()}_${safe}`;
-
+  const prog=document.getElementById('up-'+rowId);
+  const linkInp=document.getElementById('l-'+rowId);
+  if(prog) prog.textContent='Uploading…';
+  const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+  const path=`${Date.now()}_${safe}`;
   try{
-    const publicUrl = await sbStorageUpload(BUCKET, path, file);
-    if(linkInp) linkInp.value = publicUrl;
-    if(editState[rowId]) editState[rowId].link = publicUrl;
-    if(prog) prog.textContent = '✓ Uploaded!';
-    setTimeout(()=>{ if(prog) prog.textContent=''; }, 2500);
+    const {error:upErr} = await db.storage.from(BUCKET).upload(path, file, {upsert:true, contentType:file.type});
+    if(upErr) throw upErr;
+    const {data} = db.storage.from(BUCKET).getPublicUrl(path);
+    const publicUrl = data.publicUrl;
+    if(linkInp) linkInp.value=publicUrl;
+    if(editState[rowId]) editState[rowId].link=publicUrl;
+    if(prog) prog.textContent='✓ Uploaded!';
+    setTimeout(()=>{ if(prog) prog.textContent=''; },2500);
     toast('File uploaded ✓ — tap ✓ to save','ok');
   } catch(err){
-    if(prog) prog.textContent = '✗ Failed';
+    if(prog) prog.textContent='✗ Failed';
     toast('Upload error: '+err.message,'err');
   }
-  event.target.value = '';
+  event.target.value='';
 }
 
 // ── PLAYER ───────────────────────────────────────
