@@ -457,39 +457,70 @@ async function cacheForOffline(songId){
 
 // ── INIT ─────────────────────────────────────────
 async function init(){
-  await loadCachedFiles(); // load IDB first so offlineCache is populated before render
-  db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  await loadCachedFiles();
+  try{
+    db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth:{ persistSession: false, autoRefreshToken: false }
+    });
+  } catch(e){
+    console.error('Supabase client init failed:', e);
+  }
   await load();
 }
 
 async function load(){
   setFdb('...');
+
+  // Race the Supabase query against a 8-second timeout
   try{
-    const {data,error} = await db.from(TABLE).select('*').order('sort_order',{ascending:true});
+    const fetchData = db.from(TABLE).select('*').order('sort_order',{ascending:true});
+    const timeout   = new Promise((_,rej) => setTimeout(()=>rej(new Error('Connection timed out after 8s')), 8000));
+
+    const {data, error} = await Promise.race([fetchData, timeout]);
     if(error) throw error;
+
     songs = data||[];
-    // Cache song list in IDB for offline fallback
+    // Save to IDB for offline fallback
     try{ await idbPut({id:'__songlist__', blob: new Blob([JSON.stringify(songs)],{type:'application/json'}), mimeType:'application/json'}); } catch(_){}
     setFdb('ok');
+    render();
   } catch(e){
-    // Offline fallback — try to load song list from IDB
+    console.error('Supabase load error:', e);
+    // Try offline fallback from IDB
     const cached = await idbGet('__songlist__').catch(()=>null);
     if(cached){
-      songs = JSON.parse(await cached.blob.text());
-      setFdb('offline');
-      toast('Offline mode — showing cached setlist','inf');
+      try{
+        songs = JSON.parse(await cached.blob.text());
+        setFdb('offline');
+        render();
+        toast('⚠ Offline — showing cached setlist','inf');
+      } catch(_){
+        setFdb('err');
+        showConnError(e.message);
+      }
     } else {
-      toast('No internet & no cache available','err');
       setFdb('err');
+      showConnError(e.message);
     }
   }
-  render();
+}
+
+function showConnError(msg){
+  document.getElementById('body').innerHTML=`
+    <div class="empty">
+      <div class="ei">⚠️</div>
+      <div class="et">Could not connect</div>
+      <div class="es" style="max-width:260px;text-align:center;line-height:1.5">${msg}</div>
+      <button onclick="doRefresh()" style="margin-top:14px;padding:10px 22px;border-radius:9px;
+        border:1px solid var(--border2);background:var(--s2);color:var(--gold);
+        font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer;">↺ Retry</button>
+    </div>`;
+  document.getElementById('addbtn').style.display='none';
 }
 
 async function doRefresh(){
   document.getElementById('rbtn').classList.add('spin');
   await load();
-  toast('Refreshed ✓','ok');
   setTimeout(()=>document.getElementById('rbtn').classList.remove('spin'),700);
 }
 
