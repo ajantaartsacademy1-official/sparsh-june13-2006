@@ -6,7 +6,6 @@
 <title>🎤 Sparsh — June 13th 2026</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Geist+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
 :root{
   --bg:#080810;--s1:#10101c;--s2:#18182a;--s3:#20203a;
@@ -256,7 +255,7 @@ footer{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
 
 <header>
   <div class="logo-wrap">
-    <span class="logo">🎤 Sparsh2</span>
+    <span class="logo">🎤 Sparsh</span>
     <span class="logo-date">June 13th, 2026</span>
   </div>
   <span class="badge" id="hcount">— songs</span>
@@ -1076,18 +1075,28 @@ function buildWorkbook(){
     'Karaoke Link': s.karaoke_link||''
   }));
   const ws = XLSX.utils.json_to_sheet(rows);
-  // Column widths
   ws['!cols'] = [{wch:4},{wch:36},{wch:30},{wch:50}];
-  // Style header row bold (xlsx-style not available in free version, skip)
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Setlist');
   return wb;
 }
 
-function exportExcel(){
+async function loadXLSX(){
+  if(window.XLSX) return;
+  await new Promise((res,rej)=>{
+    const s = document.createElement('script');
+    s.src = 'https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js';
+    s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
+
+async function exportExcel(){
   closeExport();
   if(!songs.length){ toast('No songs to export','err'); return; }
   try{
+    toast('Preparing Excel…','inf');
+    await loadXLSX();
     const wb = buildWorkbook();
     XLSX.writeFile(wb, FILE_NAME);
     toast('Downloaded '+FILE_NAME+' ✓','ok');
@@ -1121,7 +1130,7 @@ async function exportToDrive(){
 
     const token = gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse().access_token;
     toast('Uploading to Drive…','inf');
-
+    await loadXLSX();
     // Build xlsx as array buffer
     const wb  = buildWorkbook();
     const buf = XLSX.write(wb, {type:'array', bookType:'xlsx'});
