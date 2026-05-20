@@ -97,33 +97,15 @@ header{flex-shrink:0;display:flex;align-items:center;gap:10px;
 .no-val{color:var(--border2);font-size:11px;}
 
 .c-link{font-size:12px;}
-.link-cell-wrap{display:flex;flex-direction:column;gap:3px;justify-content:center;}
-.play-btn{display:inline-flex;align-items:center;gap:4px;
+.play-btn{display:inline-flex;align-items:center;gap:5px;
   background:var(--teal-dim);color:var(--teal);border:1px solid rgba(45,212,191,.25);
-  border-radius:6px;padding:3px 7px;font-size:11px;font-weight:600;
+  border-radius:6px;padding:4px 8px;font-size:11px;font-weight:600;
   cursor:pointer;white-space:nowrap;transition:all .15s;font-family:'DM Sans',sans-serif;}
 .play-btn:hover{background:rgba(45,212,191,.2);}
 .play-btn:active{transform:scale(.95);}
-.play-btn.offline{background:rgba(74,222,128,.1);color:var(--green);border-color:rgba(74,222,128,.25);}
-.offline-row{display:flex;align-items:center;gap:4px;}
-.dl-btn{display:inline-flex;align-items:center;gap:3px;
-  background:transparent;border:none;color:var(--text2);font-size:10px;font-weight:600;
-  cursor:pointer;font-family:'DM Sans',sans-serif;padding:0;white-space:nowrap;transition:color .15s;}
-.dl-btn:hover{color:var(--gold);}
-.dl-btn.cached{color:var(--green);}
-.dl-progress{font-size:10px;color:var(--gold);}
-/* Edit row link area */
-.link-edit-wrap{display:flex;flex-direction:column;gap:4px;width:100%;padding:4px 0;}
-.link-edit-wrap input{width:100%;background:transparent;border:none;outline:none;
-  color:var(--teal);font-family:'DM Sans',sans-serif;font-size:11px;min-width:0;}
-.upload-row{display:flex;align-items:center;gap:5px;}
-.upload-label{display:inline-flex;align-items:center;gap:4px;
-  font-size:10px;font-weight:600;color:var(--text2);cursor:pointer;
-  background:var(--s3);border:1px solid var(--border2);border-radius:5px;
-  padding:3px 7px;white-space:nowrap;transition:all .15s;flex-shrink:0;}
-.upload-label:hover{border-color:var(--gold);color:var(--gold);}
-.upload-label input[type=file]{display:none;}
-.upload-progress{font-size:10px;color:var(--gold);white-space:nowrap;}
+.play-btn .play-ico{font-size:10px;}
+.c-link input{width:100%;background:transparent;border:none;outline:none;
+  color:var(--teal);font-family:'DM Sans',sans-serif;font-size:12px;}
 .c-link .no-val{color:var(--border2);font-size:11px;}
 
 /* ── PLAYER MODAL ── */
@@ -366,161 +348,25 @@ const GAPI_API_KEY   = '';   // e.g. 'AIzaSy...'
 let db, songs = [], editState = {}, popTarget = null;
 let dragSrcId = null, touchSrcId = null, touchClone = null;
 
-// ── OFFLINE CACHE (IndexedDB) ─────────────────────
-const DB_NAME = 'sparsh-offline', DB_VER = 1, STORE = 'blobs';
-let idb = null;
-const offlineCache = new Map(); // songId -> {blob, mimeType, objectUrl}
-
-async function openIDB(){
-  return new Promise((res,rej)=>{
-    const req = indexedDB.open(DB_NAME, DB_VER);
-    req.onupgradeneeded = e => e.target.result.createObjectStore(STORE, {keyPath:'id'});
-    req.onsuccess = e => { idb = e.target.result; res(idb); };
-    req.onerror   = e => rej(e.target.error);
-  });
-}
-
-async function idbGet(id){
-  return new Promise((res,rej)=>{
-    const tx = idb.transaction(STORE,'readonly');
-    const req = tx.objectStore(STORE).get(id);
-    req.onsuccess = e => res(e.target.result || null);
-    req.onerror   = e => rej(e.target.error);
-  });
-}
-
-async function idbPut(record){
-  return new Promise((res,rej)=>{
-    const tx = idb.transaction(STORE,'readwrite');
-    const req = tx.objectStore(STORE).put(record);
-    req.onsuccess = () => res();
-    req.onerror   = e => rej(e.target.error);
-  });
-}
-
-async function idbGetAll(){
-  return new Promise((res,rej)=>{
-    const tx = idb.transaction(STORE,'readonly');
-    const req = tx.objectStore(STORE).getAll();
-    req.onsuccess = e => res(e.target.result || []);
-    req.onerror   = e => rej(e.target.error);
-  });
-}
-
-async function loadCachedFiles(){
-  try{
-    await openIDB();
-    const all = await idbGetAll();
-    all.forEach(rec=>{
-      const url = URL.createObjectURL(rec.blob);
-      offlineCache.set(rec.id, {blob:rec.blob, mimeType:rec.mimeType, objectUrl:url});
-    });
-  } catch(e){ console.warn('IDB init failed',e); }
-}
-
-async function cacheForOffline(songId){
-  const song = songs.find(s=>s.id===songId);
-  if(!song?.karaoke_link){ toast('No link to download','err'); return; }
-
-  // YouTube / Google Drive can't be downloaded as binary from browser — inform user
-  if(getYouTubeId(song.karaoke_link)){
-    toast('YouTube videos can\'t be saved offline — use a direct audio/video file or Supabase upload','inf');
-    return;
-  }
-  if(getGDriveEmbed(song.karaoke_link)){
-    toast('Drive links can\'t be saved offline — download the file and re-upload via the edit button','inf');
-    return;
-  }
-
-  const btn = document.getElementById('dlbtn-'+songId);
-  if(btn) btn.textContent = '⏳ Downloading…';
-
-  try{
-    const resp = await fetch(song.karaoke_link);
-    if(!resp.ok) throw new Error('HTTP '+resp.status);
-    const mimeType = resp.headers.get('content-type') || 'audio/mpeg';
-    const blob = await resp.blob();
-    await idbPut({id:songId, blob, mimeType});
-    const objectUrl = URL.createObjectURL(blob);
-    // Revoke old url if any
-    if(offlineCache.has(songId)) URL.revokeObjectURL(offlineCache.get(songId).objectUrl);
-    offlineCache.set(songId, {blob, mimeType, objectUrl});
-    // Re-render just this row
-    const idx = songs.findIndex(s=>s.id===songId);
-    if(idx>=0){ const old=document.querySelector(`.row[data-id="${songId}"]`); if(old) old.replaceWith(mkRow(songs[idx],idx)); bindDrag(); }
-    toast('✓ Saved for offline playback!','ok');
-  } catch(e){
-    if(btn) btn.textContent = '⬇ Save offline';
-    toast('Download failed: '+e.message,'err');
-  }
-}
-
 // ── INIT ─────────────────────────────────────────
 async function init(){
-  await loadCachedFiles();
-  try{
-    db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth:{ persistSession: false, autoRefreshToken: false }
-    });
-  } catch(e){
-    console.error('Supabase client init failed:', e);
-  }
+  db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   await load();
 }
 
 async function load(){
   setFdb('...');
-
-  // Race the Supabase query against a 8-second timeout
-  try{
-    const fetchData = db.from(TABLE).select('*').order('sort_order',{ascending:true});
-    const timeout   = new Promise((_,rej) => setTimeout(()=>rej(new Error('Connection timed out after 8s')), 8000));
-
-    const {data, error} = await Promise.race([fetchData, timeout]);
-    if(error) throw error;
-
-    songs = data||[];
-    // Save to IDB for offline fallback
-    try{ await idbPut({id:'__songlist__', blob: new Blob([JSON.stringify(songs)],{type:'application/json'}), mimeType:'application/json'}); } catch(_){}
-    setFdb('ok');
-    render();
-  } catch(e){
-    console.error('Supabase load error:', e);
-    // Try offline fallback from IDB
-    const cached = await idbGet('__songlist__').catch(()=>null);
-    if(cached){
-      try{
-        songs = JSON.parse(await cached.blob.text());
-        setFdb('offline');
-        render();
-        toast('⚠ Offline — showing cached setlist','inf');
-      } catch(_){
-        setFdb('err');
-        showConnError(e.message);
-      }
-    } else {
-      setFdb('err');
-      showConnError(e.message);
-    }
-  }
-}
-
-function showConnError(msg){
-  document.getElementById('body').innerHTML=`
-    <div class="empty">
-      <div class="ei">⚠️</div>
-      <div class="et">Could not connect</div>
-      <div class="es" style="max-width:260px;text-align:center;line-height:1.5">${msg}</div>
-      <button onclick="doRefresh()" style="margin-top:14px;padding:10px 22px;border-radius:9px;
-        border:1px solid var(--border2);background:var(--s2);color:var(--gold);
-        font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer;">↺ Retry</button>
-    </div>`;
-  document.getElementById('addbtn').style.display='none';
+  const {data,error} = await db.from(TABLE).select('*').order('sort_order',{ascending:true});
+  if(error){ toast('Load error: '+error.message,'err'); setFdb('err'); return; }
+  songs = data||[];
+  render();
+  setFdb('ok');
 }
 
 async function doRefresh(){
   document.getElementById('rbtn').classList.add('spin');
   await load();
+  toast('Refreshed ✓','ok');
   setTimeout(()=>document.getElementById('rbtn').classList.remove('spin'),700);
 }
 
@@ -565,16 +411,7 @@ function mkRow(song,i){
       </div>
       <div class="cell c-singers" id="sc-${song.id}" title="Tap to select singers">${singerHtml}</div>
       <div class="cell c-link">
-        <div class="link-edit-wrap">
-          <input id="l-${song.id}" type="url" value="${x(link)}" placeholder="Paste URL or upload ↓" autocomplete="off">
-          <div class="upload-row">
-            <label class="upload-label">
-              📁 Upload
-              <input type="file" accept="audio/*,video/*" onchange="uploadFile(event,'${song.id}')">
-            </label>
-            <span class="upload-progress" id="up-${song.id}"></span>
-          </div>
-        </div>
+        <input id="l-${song.id}" type="url" value="${x(link)}" placeholder="YouTube URL" autocomplete="off">
       </div>
       <div class="cell c-act">
         <button class="ab save" title="Save (Enter)" onclick="saveRow('${song.id}')">✓</button>
@@ -585,20 +422,9 @@ function mkRow(song,i){
       openPop(song.id, div.querySelector(`#sc-${song.id}`));
     };
   } else {
-    const isCached = offlineCache.has(song.id);
-    const linkHtml = link ? `
-      <div class="link-cell-wrap">
-        <button class="play-btn${isCached?' offline':''}" onclick="openPlayer('${song.id}')">
-          ${isCached ? '📲' : '▶'} Play${isCached ? ' (offline)' : ''}
-        </button>
-        <div class="offline-row">
-          <button class="dl-btn${isCached?' cached':''}" id="dlbtn-${song.id}"
-            onclick="cacheForOffline('${song.id}')"
-            title="${isCached?'Cached for offline — tap to re-download':'Download for offline playback'}">
-            ${isCached ? '✓ Offline ready' : '⬇ Save offline'}
-          </button>
-        </div>
-      </div>` : `<span class="no-val">—</span>`;
+    const linkHtml = link
+      ? `<button class="play-btn" onclick="openPlayer('${song.id}')"><span class="play-ico">▶</span> Play</button>`
+      : `<span class="no-val">—</span>`;
     div.innerHTML=`
       <div class="cell c-num" title="Drag to reorder">
         <span class="drag-icon">⠿</span>
@@ -801,84 +627,10 @@ async function doReorder(srcId,dstId){
   for(const s of songs) await db.from(TABLE).update({sort_order:s.sort_order}).eq('id',s.id);
 }
 
-// ── FILE UPLOAD TO SUPABASE STORAGE ──────────────
-const BUCKET = 'karaoke-files';
-
-async function uploadFile(event, rowId){
-  const file = event.target.files[0];
-  if(!file) return;
-
-  const prog = document.getElementById('up-'+rowId);
-  const linkInp = document.getElementById('l-'+rowId);
-  if(prog) prog.textContent = 'Uploading…';
-
-  // Sanitise filename
-  const ext  = file.name.split('.').pop();
-  const safe = file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-  const path = `${Date.now()}_${safe}`;
-
-  try{
-    const { error: upErr } = await db.storage
-      .from(BUCKET)
-      .upload(path, file, { upsert: true, contentType: file.type });
-
-    if(upErr) throw upErr;
-
-    const { data } = db.storage.from(BUCKET).getPublicUrl(path);
-    const publicUrl = data.publicUrl;
-
-    // Put public URL into the link input so saveRow picks it up
-    if(linkInp) linkInp.value = publicUrl;
-    if(editState[rowId]) editState[rowId].link = publicUrl;
-    if(prog) prog.textContent = '✓ Uploaded!';
-    setTimeout(()=>{ if(prog) prog.textContent=''; }, 2500);
-    toast('File uploaded ✓ — tap ✓ to save','ok');
-  } catch(err){
-    if(prog) prog.textContent = '✗ Failed';
-    toast('Upload error: '+err.message,'err');
-    console.error(err);
-  }
-  // Reset file input so same file can be re-picked
-  event.target.value = '';
-}
-
 // ── PLAYER ───────────────────────────────────────
 function openPlayer(id){
   const song = songs.find(s=>s.id===id);
-  if(!song?.karaoke_link) return;
-
-  document.getElementById('pm-title').textContent   = song.name||'';
-  document.getElementById('pm-singers').textContent = (song.singers||[]).join(' · ');
-
-  const body = document.getElementById('pm-body');
-  body.innerHTML = '';
-
-  // ── Check offline cache first ──
-  const cached = offlineCache.get(id);
-  if(cached){
-    const isVid = cached.mimeType.startsWith('video');
-    const wrap  = document.createElement('div');
-    const badge = document.createElement('div');
-    badge.style.cssText='font-size:10px;color:var(--green);text-align:center;margin-bottom:6px;font-weight:600;';
-    badge.textContent='📲 Playing offline (cached)';
-    body.appendChild(badge);
-    if(isVid){
-      wrap.className='pm-video-wrap';
-      const vid=document.createElement('video');
-      vid.src=cached.objectUrl; vid.controls=true; vid.autoplay=true;
-      wrap.appendChild(vid);
-    } else {
-      wrap.className='pm-audio-wrap';
-      const aud=document.createElement('audio');
-      aud.src=cached.objectUrl; aud.controls=true; aud.autoplay=true;
-      wrap.appendChild(aud);
-    }
-    body.appendChild(wrap);
-    document.getElementById('player-overlay').classList.add('open');
-    return;
-  }
-
-  // ── Online playback ──
+  if(!song||!song.karaoke_link) return;
   const url = song.karaoke_link.trim();
 
   document.getElementById('pm-title').textContent   = song.name||'';
@@ -887,9 +639,8 @@ function openPlayer(id){
   const body = document.getElementById('pm-body');
   body.innerHTML = '';
 
-  const ytId   = getYouTubeId(url);
+  const ytId = getYouTubeId(url);
   const gdrive = getGDriveEmbed(url);
-  const mediaType = guessMediaType(url);
 
   if(ytId){
     // YouTube embed — with fallback if video owner disabled embedding
@@ -928,8 +679,8 @@ function openPlayer(id){
     // Drive preview has its own player UI for both video & audio
     wrap.appendChild(iframe);
     body.appendChild(wrap);
-  } else if(mediaType === 'video'){
-    // Native video (direct file or Supabase storage)
+  } else if(isVideo(url)){
+    // Native video
     const wrap = document.createElement('div');
     wrap.className = 'pm-video-wrap';
     const vid = document.createElement('video');
@@ -937,8 +688,8 @@ function openPlayer(id){
     vid.style.maxHeight = '280px';
     wrap.appendChild(vid);
     body.appendChild(wrap);
-  } else if(mediaType === 'audio'){
-    // Native audio (direct file or Supabase storage)
+  } else if(isAudio(url)){
+    // Native audio
     const wrap = document.createElement('div');
     wrap.className = 'pm-audio-wrap';
     const aud = document.createElement('audio');
@@ -1024,20 +775,6 @@ function isVideo(url){
 }
 function isAudio(url){
   return /\.(mp3|wav|ogg|aac|flac|m4a)(\?|$)/i.test(url);
-}
-function isSupabaseStorage(url){
-  // Files uploaded to our Supabase storage bucket
-  return url.includes('supabase.co/storage') || url.includes('/object/public/'+BUCKET);
-}
-function guessMediaType(url){
-  if(/\.(mp4|webm|mov|mkv)(\?|$)/i.test(url)) return 'video';
-  if(/\.(mp3|wav|aac|flac|m4a|ogg)(\?|$)/i.test(url)) return 'audio';
-  // For Supabase storage, try to guess from filename in URL
-  if(isSupabaseStorage(url)){
-    if(/\.(mp4|webm|mov|mkv)/i.test(url)) return 'video';
-    return 'audio'; // default to audio player for uploaded files
-  }
-  return null;
 }
 
 // ── EXPORT ───────────────────────────────────────
@@ -1143,10 +880,7 @@ function toast(msg,type){
 }
 function setFdb(s){
   const el = document.getElementById('fdb');
-  if(s==='ok')      el.textContent='● connected · supabase';
-  else if(s==='offline') el.textContent='◌ offline mode';
-  else if(s==='err') el.textContent='● error';
-  else               el.textContent='● connecting…';
+  el.textContent = s==='ok'?'● connected · supabase':s==='err'?'● error':'● connecting…';
 }
 
 init();
